@@ -1,0 +1,229 @@
+import sys
+contador_ciclos = 0
+
+def analisador_lexico(linha_texto):
+    ESTADO_INICIAL = 0
+    ESTADO_NUMERO_INTEIRO = 1
+    ESTADO_NUMERO_DECIMAL = 2
+    ESTADO_LETRA = 3 
+    ESTADO_DIVISAO = 4
+    
+    estado_atual = ESTADO_INICIAL
+    lexema_atual = ""
+    tokens = []
+    
+    entrada = linha_texto + " "
+
+    i = 0
+    while i < len(entrada):
+        caracter = entrada[i]
+        
+        if estado_atual == ESTADO_INICIAL:
+            if caracter.isspace():
+                i += 1
+                continue 
+            
+            elif caracter.isdigit():
+                estado_atual = ESTADO_NUMERO_INTEIRO
+                lexema_atual += caracter
+                
+            elif caracter.isalpha():
+                estado_atual = ESTADO_LETRA
+                lexema_atual += caracter
+
+            elif caracter == '/':
+                estado_atual = ESTADO_DIVISAO
+                
+            elif caracter in "+-*/%^()":
+                tokens.append(("OPERADOR", caracter))
+                
+            else:
+                raise ValueError(f"Caractere inválido '{caracter}' na coluna {i+1}")
+
+        elif estado_atual == ESTADO_DIVISAO:
+            if caracter == '/':
+                tokens.append(("OPERADOR", "//"))
+            else:
+                tokens.append(("OPERADOR", "/"))
+                i -= 1
+            estado_atual = ESTADO_INICIAL
+
+        elif estado_atual == ESTADO_NUMERO_INTEIRO:
+            if caracter.isdigit():
+                lexema_atual += caracter
+                
+            elif caracter == '.':
+                estado_atual = ESTADO_NUMERO_DECIMAL
+                lexema_atual += caracter
+                
+            else:
+                tokens.append(("NUMERO", float(lexema_atual)))
+                lexema_atual = ""
+                estado_atual = ESTADO_INICIAL 
+                i -= 1
+
+        elif estado_atual == ESTADO_NUMERO_DECIMAL:
+            if caracter.isdigit():
+                lexema_atual += caracter
+            else:
+                tokens.append(("NUMERO", float(lexema_atual)))
+                lexema_atual = ""
+                estado_atual = ESTADO_INICIAL
+                i -= 1
+                    
+        elif estado_atual == ESTADO_LETRA:
+            if caracter.isalpha():
+                lexema_atual += caracter
+            else:
+                tokens.append(("COMANDO", lexema_atual))
+                lexema_atual = ""
+                estado_atual = ESTADO_INICIAL
+                i -= 1
+                
+        i += 1
+
+    return tokens
+
+def gerar_assembly(lista_tokens, nome_arquivo_saida):
+
+    global contador_ciclos
+
+    memoria_numeros = []
+
+    with open(nome_arquivo_saida, 'w') as f:
+        f.write(".global _start\n")
+        f.write(".text\n")
+        f.write("_start:\n\n")
+
+        for tipo, valor in lista_tokens:
+            if tipo == "NUMERO":
+                id_num = len(memoria_numeros) + 1
+                memoria_numeros.append((id_num, valor))
+
+                f.write(f" // - Numero: {valor} - \n")
+                f.write(f" ldr r0, =num_{id_num} \n")
+                f.write(f" vldr d0, [r0] \n")
+                f.write(" vpush {d0} \n\n")
+            
+            elif tipo == "OPERADOR" and valor not in ['(', ')']:
+                f.write(f" // - Operador: {valor} - \n")
+                f.write(" vpop {d0} \n")
+                f.write(" vpop {d1} \n")
+
+                if valor == '+':
+                    f.write(" vadd.f64 d2, d1, d0 \n")
+                elif valor == '-':
+                    f.write(" vsub.f64 d2, d1, d0 \n")
+                elif valor == '*':
+                    f.write(" vmul.f64 d2, d1, d0 \n")
+                elif valor == '/':
+                    f.write(" vdiv.f64 d2, d1, d0 \n")
+                elif valor == '//':
+                    f.write(" vdiv.f64 d2, d1, d0 \n")
+                    f.write(" vcvt.s32.f64 s0, d2 \n")
+                    f.write(" vcvt.f64.s32 d2, s0 \n")
+                elif valor == '%':
+                    f.write(" vdiv.f64 d2, d1, d0 \n")
+                    f.write(" vcvt.s32.f64 s0, d2 \n")
+                    f.write(" vcvt.f64.s32 d2, s0 \n")
+                    f.write(" vmul.f64 d2, d2, d0 \n")
+                    f.write(" vsub.f64 d2, d1, d2 \n")
+                elif valor == '^':
+                    contador_ciclos += 1
+                    id_ciclo = contador_ciclos
+                    f.write(" vcvt.s32.f64 s0, d0 \n")
+                    f.write(" vmov r2, s0 \n")
+
+                    id_num_const = len(memoria_numeros) + 1
+                    memoria_numeros.append((id_num_const, 1.0))
+                    f.write(f" ldr r0, =num_{id_num_const} \n")
+                    f.write("  vldr d2, [r0] \n")
+
+                    f.write(f"\nciclo_potencia_{id_ciclo}:\n")
+                    f.write(" cmp r2, #0 \n")
+                    f.write(f" ble fim_potencia_{id_ciclo} \n")
+                    f.write(" vmul.f64 d2, d2, d1 \n")
+                    f.write(" sub r2, r2, #1 \n")
+                    f.write(f" b ciclo_potencia_{id_ciclo} \n")
+                    f.write(f"\nfim_potencia_{id_ciclo}:\n")
+
+                    f.write(" vpush {d2} \n\n")
+
+            elif tipo == "COMANDO":
+                f.write(f" // - Comando: {valor} - \n")
+                if valor == "MEM":
+                    f.write(" ldr r0, =variavel_mem  \n")
+                    f.write(" vldr d0, [r0] \n")
+                    f.write(" vpush {d0} \n\n")
+                elif valor == "RES":
+                    f.write(" vpop {d0} \n")
+                    f.write(" vcvt.s32.f64 s0, d0 \n")
+                    f.write(" vmov r1, s0 \n")
+                    f.write(" mov r2, #8 \n")
+                    f.write(" mul r1, r1, r2 \n")
+                    f.write(" ldr r0, =historico_res \n")
+                    f.write(" ldr r3, =ponteiro_res  \n")
+                    f.write(" ldr r3, [r3] \n")
+                    f.write(" mul r3, r3, r2 \n")
+                    f.write(" add r0, r0, r3 \n")
+                    f.write(" sub r0, r0, r1 \n")
+                    f.write(" vldr d2, [r0] \n")
+                    f.write(" vpush {d2} \n\n")
+
+        f.write("\n_fim:\n")
+        f.write(" b _fim \n")
+
+        f.write("\n.data\n")
+
+        for id_num, val in memoria_numeros:
+            f.write(f"num_{id_num}: .double {val}\n")
+
+        f.write("\nvariavel_mem: .space 8 \n")
+        f.write("historico_res: .space 800 \n")
+        f.write("ponteiro_res: .word 0 \n")
+
+def salvar_tokens(lista_tokens, nome_arquivo):
+    with open(nome_arquivo, 'w') as f:
+        for tipo, valor in lista_tokens:
+            f.write(f"<{tipo}, {valor}>\n")
+
+def main():
+    if len(sys.argv) < 2:
+        print("Uso correto: python Compilador.py <arquivo_de_teste.txt>")
+        return
+    
+    nome_arquivo_entrada = sys.argv[1]
+
+    nome_arquivo_assembly = "saida_assembly.s"
+    nome_arquivo_tokens = "tokens_gerados.txt"
+    todos_tokens = []
+
+    try:
+        print(f"Lendo o arquivo: {nome_arquivo_entrada} ...")
+
+        with open(nome_arquivo_entrada, 'r') as arquivo:
+            linhas = arquivo.readlines()
+
+            numero_linha = 1
+            for linha in linhas:
+                try:
+                    tokens_da_linha = analisador_lexico(linha)
+                    todos_tokens.extend(tokens_da_linha)
+                except ValueError as erro:
+                    print(f"\n Erro de compilação")
+                    print(f"Erro Lexico na linha {numero_linha}: {erro}")
+                    sys.exit(1)
+
+                numero_linha += 1
+
+        salvar_tokens(todos_tokens, nome_arquivo_tokens)
+        print(f"Sucesso! Arquivo de tokens gerado: {nome_arquivo_tokens}")
+
+        gerar_assembly(todos_tokens, nome_arquivo_assembly)
+        print(f"Sucesso! Arquivo Assembly gerado: {nome_arquivo_assembly}")
+
+    except FileNotFoundError:
+        print(f"Erro: O arquivo '{nome_arquivo_entrada}' não foi encontrado na pasta atual")
+
+if __name__ == "__main__":
+    main()
