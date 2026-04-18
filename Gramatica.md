@@ -27,7 +27,7 @@ Para seguir a notação padrão (onde Não-Terminais são letras maiusculas e Te
 | **O** | `{ num, var, op, cmd, (, ε }` | `{ ) }` |
 | **I** | `{ num, var, op, cmd, ( }` | `{ num, var, op, cmd, (, ) }` |
 
-*(Nota: o símbolo $\varepsilon$ representa a cadeia vazia e `$` representa o fim do arquivo)*
+*(Nota: o símbolo `ε` representa a cadeia vazia e `$` representa o fim do arquivo)*
 
 ---
 
