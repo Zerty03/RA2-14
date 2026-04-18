@@ -6,12 +6,13 @@ def analisador_lexico(linha_texto):
     ESTADO_NUMERO_INTEIRO = 1
     ESTADO_NUMERO_DECIMAL = 2
     ESTADO_LETRA = 3 
-    ESTADO_DIVISAO = 4
+    ESTADO_IGUAL = 4
     
     estado_atual = ESTADO_INICIAL
     lexema_atual = ""
     tokens = []
     
+    linha_limpa = linha_texto.replace("(START)", " START ").replace("(END)", " END ")
     entrada = linha_texto + " "
 
     i = 0
@@ -31,22 +32,22 @@ def analisador_lexico(linha_texto):
                 estado_atual = ESTADO_LETRA
                 lexema_atual += caracter
 
-            elif caracter == '/':
-                estado_atual = ESTADO_DIVISAO
+            elif caracter == '=':
+                estado_atual = ESTADO_IGUAL
                 
-            elif caracter in "+-*/%^()":
+            elif caracter in "+-*/%^()|<>":
                 tokens.append(("OPERADOR", caracter))
                 
             else:
                 raise ValueError(f"Caractere inválido '{caracter}' na coluna {i+1}")
 
-        elif estado_atual == ESTADO_DIVISAO:
-            if caracter == '/':
-                tokens.append(("OPERADOR", "//"))
+        elif estado_atual == ESTADO_IGUAL:
+            if caracter == '=':
+                tokens.append(("OPERADOR", "=="))
             else:
-                tokens.append(("OPERADOR", "/"))
-                i -= 1
+                raise ValueError("Erro léxico: Esperado '=' após '='. O operador de igualdade é '=='.")
             estado_atual = ESTADO_INICIAL
+            continue
 
         elif estado_atual == ESTADO_NUMERO_INTEIRO:
             if caracter.isdigit():
@@ -75,7 +76,19 @@ def analisador_lexico(linha_texto):
             if caracter.isalpha():
                 lexema_atual += caracter
             else:
-                tokens.append(("COMANDO", lexema_atual))
+                # força letras serem maiusculas
+                palavra = lexema_atual.upper()
+
+                # classifica a palavra lida no seu grupo correto
+                if palavra == "START":
+                    tokens.append(("START", "START"))
+                elif palavra == "END":
+                    tokens.append(("END", "END"))
+                elif palavra in ["NEM", "RES", "IF", "WHILE"]:
+                    tokens.append(("COMANDO", palavra))
+                else:
+                    tokens.append(("VARIAVEL", palavra))
+
                 lexema_atual = ""
                 estado_atual = ESTADO_INICIAL
                 i -= 1
