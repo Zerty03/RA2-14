@@ -30,3 +30,15 @@ Para seguir a notação padrão (onde Não-Terminais são letras maiusculas e Te
 *(Nota: o símbolo $\varepsilon$ representa a cadeia vazia e `$` representa o fim do arquivo)*
 
 ---
+
+## 3. Tabela de Análise Sintática LL(1)
+
+A gramática abaixo prova-se estritamente **LL(1)**, pois não há colisões (nenhuma célula possui mais de uma regra de produção), garantindo que o *Parser* não sofra de ambiguidades.
+
+| NT \ Term | start | end | ( | ) | num | var | op | cmd | $ |
+| :---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **S** | S $\rightarrow$ start C end | | | | | | | | |
+| **C** | | C $\rightarrow$ $\varepsilon$ | C $\rightarrow$ B C | | | | | | |
+| **B** | | | B $\rightarrow$ ( O ) | | | | | | |
+| **O** | | | O $\rightarrow$ I O | O $\rightarrow$ $\varepsilon$ | O $\rightarrow$ I O | O $\rightarrow$ I O | O $\rightarrow$ I O | O $\rightarrow$ I O | |
+| **I** | | | I $\rightarrow$ B | | I $\rightarrow$ num | I $\rightarrow$ var | I $\rightarrow$ op | I $\rightarrow$ cmd | |
