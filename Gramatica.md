@@ -17,3 +17,16 @@ Para seguir a notação padrão (onde Não-Terminais são letras maiusculas e Te
 
 ---
 
+## 2. Conjunto FIRST e FOLLOW
+
+| Não-Terminal | FIRST | FOLLOW |
+| :---: | :--- | :--- |
+| **S** | `{ start }` | `{ $ }` |
+| **C** | `{ (, ε }` | `{ end }` |
+| **B** | `{ ( }` | `{ (, end }` |
+| **O** | `{ num, var, op, cmd, (, ε }` | `{ ) }` |
+| **I** | `{ num, var, op, cmd, ( }` | `{ num, var, op, cmd, (, ) }` |
+
+*(Nota: o símbolo $\varepsilon$ representa a cadeia vazia e `$` representa o fim do arquivo)*
+
+---
