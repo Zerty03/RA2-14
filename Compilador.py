@@ -97,6 +97,60 @@ def analisador_lexico(linha_texto):
 
     return tokens
 
+# Classes da arvore sintática (AST)
+class NoAST:
+    #Clase base para todos os nós da árvore herdam deste
+    pass
+
+# nó raiz
+class NoPrograma(NoAST):
+    def __init__(self):
+        # Lista para guardar todos os blocos do programa entre o START e o END
+        self.comandos = []
+
+class NoBloco(NoAST):
+    def __init__(self):
+        # Lista para guardar todos os Números, Variaveis, Operadores ou outros Blocos, tudo que estiver entre ()
+        self.itens = []
+
+# Decisão IF
+class NoIf(NoAST):
+    def __init__(self, condicao, bloco_verdadeiro):
+        # guarda os teste (confição) e o bloco que vai rodar se for TRUE
+        self.condicao = condicao
+        self.bloco_verdadeiro = bloco_verdadeiro
+
+# Repetição While
+class NoWhile(NoAST):
+    def __init__(self, condicao, bloco_loop):
+        # Guarda o teste e o bloco que vai ficar repetindo
+        self.condicao = condicao
+        self.bloco_loop = bloco_loop
+
+#Terminal
+class NoNumero(NoAST):
+    def __init__(self, valor):
+        #guarda um número (float), vai virar instrução de carga(vldr)
+        self.valor = valor
+
+#Memória
+class NoVariavel(NoAST):
+    def __init__(self, nome):
+        #Guarda o nome de uma variavel inventada pelo usuario
+        self.nome = nome
+
+#ação
+class NoOperador(NoAST):
+    def __init__(self, simbolo):
+        # Guarda operadores matemáticos ou lógicos
+        self.simbolo = simbolo
+
+#Temporario
+class NoComando(NoAST):
+    def __init__(self, nome):
+        #Ajuda a identificar as palavras IF e WHILE
+        self.nome = nome
+
 def gerar_assembly(lista_tokens, nome_arquivo_saida):
 
     global contador_ciclos
