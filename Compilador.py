@@ -303,7 +303,116 @@ class GeradorAssembly:
         with open(nome_arquivo, "w") as f:
             f.write("\n".join(self.codigo))
 
-        
+
+    # Navegadores da Arvore Sintática
+    def visitar_programa(self, no_prog):
+        for cmd in no_prog.comandos:
+            self.visitar_no(cmd, profundidade_pilha=0)
+
+    def visitar_no(self, no, profundidade_pilha=0):
+        if isinstance(no, NoBloco):
+            prof = profundidade_pilha
+            for item in no.itens:
+                prof = self.visitar_item(item, prof)
+
+        elif isinstance(no, NoIf):
+            lbl_fim = self.gerar_label("fim_if")
+
+            self.add_inst("\n// --- INICIO IF (Avaliando Condicao) ---")
+            self.visitar_no(no.condicao, profundidade_pilha)
+
+            self.add_inst("vpop {d0}") # Pega o resultado (1.0 ou 0.0)
+            self.add_inst("ldr r0, =const_0")
+            self.add_inst("vldr d1, [r0]")
+            self.add_inst("vcmp.f64 d0, d1") # Compara com 0.0 (Falso)
+            self.add_inst("vmrs APSR_nzcv, fpscr")
+            self.add_inst(f"beq {lbl_fim} // Se for Falso, pula o bloco inteiro!")
+
+            self.add_inst("// --- BLOCO VERDADEIRO ---")
+            self.visitar_no(no.bloco_verdadeiro, profundidade_pilha)
+            self.codigo.append(f"{lbl_fim}:")
+
+        elif isinstance(no, NoWhile):
+            lbl_inicio = self.gerar_label("inicio_while")
+            lbl_fim = self.gerar_label("fim_while")
+
+            self.codigo.append(f"\n{lbl_inicio}:")
+            self.add_inst("// --- INICIO WHILE (Avaliando Condicao) ---")
+            self.visitar_no(no.condicao, profundidade_pilha)
+
+            self.add_inst("vpop {d0}")
+            self.add_inst("ldr r0, =const_0")
+            self.add_inst("vldr d1, [r0]")
+            self.add_inst("vcmp.f64 d0, d1")
+            self.add_inst("vmrs APSR_nzcv, fpscr")
+            self.add_inst(f"beq {lbl_fim} // Se Falso, Quebra o Loop!")
+
+            self.add_inst("// --- BLOCO WHILE ---")
+            self.visitar_no(no.bloco_loop, profundidade_pilha)
+            self.add_inst(f"b {lbl_inicio} // Volta lá para cima!")
+            self.codigo.append(f"{lbl_fim}:")
+
+    def visitar_item(self, item, prof):
+        if isinstance(item, NoNumero):
+            id_num = self.registrar_numero(item.valor)
+            self.add_inst(f"ldr r0, =num_{id_num}")
+            self.add_inst("vldr d0, [r0]")
+            self.add_inst("vpush {d0}")
+            return prof + 1
+
+        elif isinstance(item, NoVariavel):
+            self.variaveis.add(item.nome)
+            # A INTELIGÊNCIA: Se a pilha tem algo, é uma ATRIBUIÇÃO. Se está vazia, é uma LEITURA.
+            if prof > 0:
+                self.add_inst(f"// Guardando valor na variavel {item.nome}")
+                self.add_inst("vpop {d0}")
+                self.add_inst(f"ldr r0, =var_{item.nome}")
+                self.add_inst("vstr d0, [r0]")
+                return prof - 1
+            else:
+                self.add_inst(f"// Lendo valor da variavel {item.nome}")
+                self.add_inst(f"ldr r0, =var_{item.nome}")
+                self.add_inst("vldr d0, [r0]")
+                self.add_inst("vpush {d0}")
+                return prof + 1
+
+        elif isinstance(item, NoOperador):
+            self.add_inst(f"// Operador {item.simbolo}")
+            self.add_inst("vpop {d0} // Operando B")
+            self.add_inst("vpop {d1} // Operando A")
+
+            if item.simbolo == '+': self.add_inst("vadd.f64 d2, d1, d0")
+            elif item.simbolo == '-': self.add_inst("vsub.f64 d2, d1, d0")
+            elif item.simbolo == '*': self.add_inst("vmul.f64 d2, d1, d0")
+            elif item.simbolo == '|': self.add_inst("vdiv.f64 d2, d1, d0") # Div Real nova
+            elif item.simbolo == '/': # Div Inteira nova
+                self.add_inst("vdiv.f64 d2, d1, d0")
+                self.add_inst("vcvt.s32.f64 s0, d2")
+                self.add_inst("vcvt.f64.s32 d2, s0")
+            elif item.simbolo in ['<', '>', '==']:
+                self.add_inst("vcmp.f64 d1, d0")
+                self.add_inst("vmrs APSR_nzcv, fpscr")
+                lbl_true = self.gerar_label("op_true")
+                lbl_end = self.gerar_label("op_end")
+
+                if item.simbolo == '<': self.add_inst(f"blt {lbl_true}")
+                elif item.simbolo == '>': self.add_inst(f"bgt {lbl_true}")
+                elif item.simbolo == '==': self.add_inst(f"beq {lbl_true}")
+
+                # Se for falso, empilha 0.0
+                self.add_inst("ldr r0, =const_0")
+                self.add_inst("vldr d2, [r0]")
+                self.add_inst(f"b {lbl_end}")
+                self.codigo.append(f"{lbl_true}:")
+                # Se for verdadeiro, empilha 1.0
+                self.add_inst("ldr r0, =const_1")
+                self.add_inst("vldr d2, [r0]")
+                self.codigo.append(f"{lbl_end}:")
+
+            self.add_inst("vpush {d2}")
+            return prof - 1 
+
+        return prof
 
 def salvar_tokens(lista_tokens, nome_arquivo):
     with open(nome_arquivo, 'w') as f:
