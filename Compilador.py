@@ -44,10 +44,9 @@ def analisador_lexico(linha_texto):
         elif estado_atual == ESTADO_IGUAL:
             if caracter == '=':
                 tokens.append(("OPERADOR", "=="))
+                estado_atual = ESTADO_INICIAL
             else:
                 raise ValueError("Erro léxico: Esperado '=' após '='. O operador de igualdade é '=='.")
-            estado_atual = ESTADO_INICIAL
-            continue
 
         elif estado_atual == ESTADO_NUMERO_INTEIRO:
             if caracter.isdigit():
@@ -84,7 +83,7 @@ def analisador_lexico(linha_texto):
                     tokens.append(("START", "START"))
                 elif palavra == "END":
                     tokens.append(("END", "END"))
-                elif palavra in ["NEM", "RES", "IF", "WHILE"]:
+                elif palavra in ["MEM", "RES", "IF", "WHILE"]:
                     tokens.append(("COMANDO", palavra))
                 else:
                     tokens.append(("VARIAVEL", palavra))
