@@ -322,7 +322,7 @@ class GeradorAssembly:
         elif isinstance(no, NoIf):
             lbl_fim = self.gerar_label("fim_if")
 
-            self.add_inst("\n// --- INICIO IF (Avaliando Condicao) ---")
+            self.add_inst("\n// INICIO IF (Avaliando Condicao) \n")
             self.visitar_no(no.condicao, profundidade_pilha)
 
             self.add_inst("vpop {d0}") # Pega o resultado (1.0 ou 0.0)
@@ -332,7 +332,7 @@ class GeradorAssembly:
             self.add_inst("vmrs APSR_nzcv, fpscr")
             self.add_inst(f"beq {lbl_fim} // Se for Falso, pula o bloco inteiro!")
 
-            self.add_inst("// --- BLOCO VERDADEIRO ---")
+            self.add_inst("\n// BLOCO VERDADEIRO \n")
             self.visitar_no(no.bloco_verdadeiro, profundidade_pilha)
             self.codigo.append(f"{lbl_fim}:")
 
@@ -341,7 +341,7 @@ class GeradorAssembly:
             lbl_fim = self.gerar_label("fim_while")
 
             self.codigo.append(f"\n{lbl_inicio}:")
-            self.add_inst("// --- INICIO WHILE (Avaliando Condicao) ---")
+            self.add_inst("\n// INICIO WHILE (Avaliando Condicao) \n")
             self.visitar_no(no.condicao, profundidade_pilha)
 
             # Mesma logica do IF, avalia se o resultado da condição é 0.0
@@ -352,7 +352,7 @@ class GeradorAssembly:
             self.add_inst("vmrs APSR_nzcv, fpscr")
             self.add_inst(f"beq {lbl_fim} // Se Falso, Quebra o Loop!")
 
-            self.add_inst("// --- BLOCO WHILE ---")
+            self.add_inst("\n// BLOCO WHILE \n")
             self.visitar_no(no.bloco_loop, profundidade_pilha)
             self.add_inst(f"b {lbl_inicio} // Volta lá para cima!")
             self.codigo.append(f"{lbl_fim}:")
