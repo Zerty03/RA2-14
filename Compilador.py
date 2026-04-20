@@ -72,7 +72,7 @@ def analisador_lexico(linha_texto):
                 i -= 1
                     
         elif estado_atual == ESTADO_LETRA:
-            if caracter.isalpha():
+            if caracter.isalpha() or caracter == '_':
                 lexema_atual += caracter
             else:
                 # força letras serem maiusculas
