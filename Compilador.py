@@ -255,101 +255,42 @@ class Parser:
 
 def gerar_assembly(lista_tokens, nome_arquivo_saida):
 
-    global contador_ciclos
+    def registrar_numero(self, valor):
+        id_num = len(self.numeros_memoria) + 1
+        self.numeros_memoria.append((id_num, valor))
+        return id_num
+    
+    def compilar(self, nome_arquivo):
+        # Cabeçalho arquivo assembly
+        self.codigo.append(".global _start")
+        self.codigo.append(".text")
+        self.codigo.append("_start:\n")
 
-    memoria_numeros = []
+        # inicia a travesia na arvore sintatica (raiz)
+        self.visitar_programa(self.arvore)
 
-    with open(nome_arquivo_saida, 'w') as f:
-        f.write(".global _start\n")
-        f.write(".text\n")
-        f.write("_start:\n\n")
+        #fim execução
+        self.codigo.append("\n_fim:")
+        self.codigo.append("    b _fim\n")
 
-        for tipo, valor in lista_tokens:
-            if tipo == "NUMERO":
-                id_num = len(memoria_numeros) + 1
-                memoria_numeros.append((id_num, valor))
+        # Seção de Memória RAM
+        self.codigo.append(".data")
+        for id_num, val in self.numeros_memoria:
+            self.codigo.append(f"num_{id_num}: .double {val}")
 
-                f.write(f" // - Numero: {valor} - \n")
-                f.write(f" ldr r0, =num_{id_num} \n")
-                f.write(f" vldr d0, [r0] \n")
-                f.write(" vpush {d0} \n\n")
-            
-            elif tipo == "OPERADOR" and valor not in ['(', ')']:
-                f.write(f" // - Operador: {valor} - \n")
-                f.write(" vpop {d0} \n")
-                f.write(" vpop {d1} \n")
+        # Constantes para IF e WHILE
+        self.codigo.append("const_1: .double 1.0")
+        self.codigo.append("const_0: .double 0.0")
 
-                if valor == '+':
-                    f.write(" vadd.f64 d2, d1, d0 \n")
-                elif valor == '-':
-                    f.write(" vsub.f64 d2, d1, d0 \n")
-                elif valor == '*':
-                    f.write(" vmul.f64 d2, d1, d0 \n")
-                elif valor == '/':
-                    f.write(" vdiv.f64 d2, d1, d0 \n")
-                elif valor == '//':
-                    f.write(" vdiv.f64 d2, d1, d0 \n")
-                    f.write(" vcvt.s32.f64 s0, d2 \n")
-                    f.write(" vcvt.f64.s32 d2, s0 \n")
-                elif valor == '%':
-                    f.write(" vdiv.f64 d2, d1, d0 \n")
-                    f.write(" vcvt.s32.f64 s0, d2 \n")
-                    f.write(" vcvt.f64.s32 d2, s0 \n")
-                    f.write(" vmul.f64 d2, d2, d0 \n")
-                    f.write(" vsub.f64 d2, d1, d2 \n")
-                elif valor == '^':
-                    contador_ciclos += 1
-                    id_ciclo = contador_ciclos
-                    f.write(" vcvt.s32.f64 s0, d0 \n")
-                    f.write(" vmov r2, s0 \n")
+        # Cria um espaço dinâmico na RAM para cada variável inventada pelo usuário!
+        for var in self.variaveis:
+            self.codigo.append(f"var_{var}: .space 8") # 8 bytes = 64 bits para FPU
 
-                    id_num_const = len(memoria_numeros) + 1
-                    memoria_numeros.append((id_num_const, 1.0))
-                    f.write(f" ldr r0, =num_{id_num_const} \n")
-                    f.write("  vldr d2, [r0] \n")
+        # Salva tudo no disco
+        with open(nome_arquivo, "w") as f:
+            f.write("\n".join(self.codigo))
 
-                    f.write(f"\nciclo_potencia_{id_ciclo}:\n")
-                    f.write(" cmp r2, #0 \n")
-                    f.write(f" ble fim_potencia_{id_ciclo} \n")
-                    f.write(" vmul.f64 d2, d2, d1 \n")
-                    f.write(" sub r2, r2, #1 \n")
-                    f.write(f" b ciclo_potencia_{id_ciclo} \n")
-                    f.write(f"\nfim_potencia_{id_ciclo}:\n")
-
-                    f.write(" vpush {d2} \n\n")
-
-            elif tipo == "COMANDO":
-                f.write(f" // - Comando: {valor} - \n")
-                if valor == "MEM":
-                    f.write(" ldr r0, =variavel_mem  \n")
-                    f.write(" vldr d0, [r0] \n")
-                    f.write(" vpush {d0} \n\n")
-                elif valor == "RES":
-                    f.write(" vpop {d0} \n")
-                    f.write(" vcvt.s32.f64 s0, d0 \n")
-                    f.write(" vmov r1, s0 \n")
-                    f.write(" mov r2, #8 \n")
-                    f.write(" mul r1, r1, r2 \n")
-                    f.write(" ldr r0, =historico_res \n")
-                    f.write(" ldr r3, =ponteiro_res  \n")
-                    f.write(" ldr r3, [r3] \n")
-                    f.write(" mul r3, r3, r2 \n")
-                    f.write(" add r0, r0, r3 \n")
-                    f.write(" sub r0, r0, r1 \n")
-                    f.write(" vldr d2, [r0] \n")
-                    f.write(" vpush {d2} \n\n")
-
-        f.write("\n_fim:\n")
-        f.write(" b _fim \n")
-
-        f.write("\n.data\n")
-
-        for id_num, val in memoria_numeros:
-            f.write(f"num_{id_num}: .double {val}\n")
-
-        f.write("\nvariavel_mem: .space 8 \n")
-        f.write("historico_res: .space 800 \n")
-        f.write("ponteiro_res: .word 0 \n")
+        
 
 def salvar_tokens(lista_tokens, nome_arquivo):
     with open(nome_arquivo, 'w') as f:
