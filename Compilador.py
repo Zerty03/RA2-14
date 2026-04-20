@@ -462,8 +462,19 @@ def main():
         salvar_tokens(todos_tokens, nome_arquivo_tokens)
         print(f"Sucesso! Arquivo de tokens gerado: {nome_arquivo_tokens}")
 
-        gerar_assembly(todos_tokens, nome_arquivo_assembly)
-        print(f"Sucesso! Arquivo Assembly gerado: {nome_arquivo_assembly}")
+        try:
+            print("Iniciando a Analise Sintatica...")
+            arvore_ast = analisador_sintatico(todos_tokens)
+            print("Sucesso! Arvore Sintatica (AST) gerada sem erros.")
+    
+            gerador = GeradorAssembly(arvore_ast)
+            gerador.compilar(nome_arquivo_assembly)
+            print(f"Sucesso Total! Arquivo Assembly da Fase 2 gerado: {nome_arquivo_assembly}")
+    
+        except SyntaxError as erro:
+            print(f"\n Erro de Compilacao Sintatica:")
+            print(erro)
+            sys.exit(1)
 
     except FileNotFoundError:
         print(f"Erro: O arquivo '{nome_arquivo_entrada}' não foi encontrado na pasta atual")
