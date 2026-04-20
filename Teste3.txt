@@ -1,0 +1,11 @@
+START
+( 10.0 VALOR )
+( 20.0 TAXA )
+( VALOR TAXA + TOTAL )
+( ( TOTAL 30.0 == ) ( TOTAL 5.0 - TOTAL  IF ) )
+( 100.0 CAIXA )
+( CAIXA TOTAL - )
+( 1.0 1.0 + )
+( 2.0 2.0 + )
+( 3.0 3.0 + )
+END
