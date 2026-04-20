@@ -249,9 +249,9 @@ class Parser:
             tipo, valor = self.token_atual()
         return itens
     
-    def analisador_sintatico(tokens):
-        parser = Parser(tokens)
-        return parser.parse_programa()
+def analisador_sintatico(tokens):
+    parser = Parser(tokens)
+    return parser.parse_programa()
 
 class GeradorAssembly:
     def __init__(self, arvore):
