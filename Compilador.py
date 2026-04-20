@@ -253,7 +253,20 @@ class Parser:
         parser = Parser(tokens)
         return parser.parse_programa()
 
-def gerar_assembly(lista_tokens, nome_arquivo_saida):
+class GeradorAssembly:
+    def __init__(self, arvore):
+        self.arvore = arvore
+        self.codigo = []
+        self.variaveis = set()
+        self.numeros_memoria = []
+        self.contador_labels = 0
+
+    def gerar_label(self, prefixo):
+        self.contador_labels += 1
+        return f"{prefixo}_{self.contador_labels}"
+    
+    def add_inst(self, instrucao):
+        self.codigo.append("    " + instrucao)
 
     def registrar_numero(self, valor):
         id_num = len(self.numeros_memoria) + 1
