@@ -258,17 +258,20 @@ class GeradorAssembly:
         self.arvore = arvore
         self.codigo = []
         self.variaveis = set()
-        self.numeros_memoria = []
-        self.contador_labels = 0
+        self.numeros_memoria = [] #Guarda variáveis únicas para criar espaço na RAM depois
+        self.contador_labels = 0 # Guarda os números fixos para colocar na RAM
 
     def gerar_label(self, prefixo):
+        # Cria nomes únicos para os pulos no codigo
         self.contador_labels += 1
         return f"{prefixo}_{self.contador_labels}"
     
     def add_inst(self, instrucao):
+        # Apenas formata o código Assembly com recuo para ficar legivel
         self.codigo.append("    " + instrucao)
 
     def registrar_numero(self, valor):
+        # Associa cada número a um ID único para ser criado na seção .data
         id_num = len(self.numeros_memoria) + 1
         self.numeros_memoria.append((id_num, valor))
         return id_num
@@ -278,7 +281,6 @@ class GeradorAssembly:
         self.codigo.append(".global _start")
         self.codigo.append(".text")
         self.codigo.append("_start:\n")
-
         # inicia a travesia na arvore sintatica (raiz)
         self.visitar_programa(self.arvore)
 
@@ -288,6 +290,8 @@ class GeradorAssembly:
 
         # Seção de Memória RAM
         self.codigo.append(".data")
+
+        #Cria as variáveis estáticas para os números que apareceram no código
         for id_num, val in self.numeros_memoria:
             self.codigo.append(f"num_{id_num}: .double {val}")
 
@@ -340,6 +344,7 @@ class GeradorAssembly:
             self.add_inst("// --- INICIO WHILE (Avaliando Condicao) ---")
             self.visitar_no(no.condicao, profundidade_pilha)
 
+            # Mesma logica do IF, avalia se o resultado da condição é 0.0
             self.add_inst("vpop {d0}")
             self.add_inst("ldr r0, =const_0")
             self.add_inst("vldr d1, [r0]")
@@ -354,6 +359,7 @@ class GeradorAssembly:
 
     def visitar_item(self, item, prof):
         if isinstance(item, NoNumero):
+            # Busca numero na memória RAM usando um ponteiro (r0) e empilha na FPU
             id_num = self.registrar_numero(item.valor)
             self.add_inst(f"ldr r0, =num_{id_num}")
             self.add_inst("vldr d0, [r0]")
@@ -362,7 +368,7 @@ class GeradorAssembly:
 
         elif isinstance(item, NoVariavel):
             self.variaveis.add(item.nome)
-            # A INTELIGÊNCIA: Se a pilha tem algo, é uma ATRIBUIÇÃO. Se está vazia, é uma LEITURA.
+            # Se a pilha tem algo, é uma ATRIBUIÇÃO. Se está vazia, é uma LEITURA.
             if prof > 0:
                 self.add_inst(f"// Guardando valor na variavel {item.nome}")
                 self.add_inst("vpop {d0}")
@@ -372,7 +378,7 @@ class GeradorAssembly:
             else:
                 self.add_inst(f"// Lendo valor da variavel {item.nome}")
                 self.add_inst(f"ldr r0, =var_{item.nome}")
-                self.add_inst("vldr d0, [r0]")
+                self.add_inst("vldr d0, [r0]") # Load: Memória -> Registrador
                 self.add_inst("vpush {d0}")
                 return prof + 1
 
@@ -381,20 +387,25 @@ class GeradorAssembly:
             self.add_inst("vpop {d0} // Operando B")
             self.add_inst("vpop {d1} // Operando A")
 
+            # operações matematicas
             if item.simbolo == '+': self.add_inst("vadd.f64 d2, d1, d0")
             elif item.simbolo == '-': self.add_inst("vsub.f64 d2, d1, d0")
             elif item.simbolo == '*': self.add_inst("vmul.f64 d2, d1, d0")
-            elif item.simbolo == '|': self.add_inst("vdiv.f64 d2, d1, d0") # Div Real nova
-            elif item.simbolo == '/': # Div Inteira nova
+            elif item.simbolo == '|': self.add_inst("vdiv.f64 d2, d1, d0") # Div Real
+            elif item.simbolo == '/': # Div Inteira 
+                # divisão inteira ele arranca as casa decimais e volta para float
                 self.add_inst("vdiv.f64 d2, d1, d0")
                 self.add_inst("vcvt.s32.f64 s0, d2")
                 self.add_inst("vcvt.f64.s32 d2, s0")
+
+            # Operações Lógicas
             elif item.simbolo in ['<', '>', '==']:
                 self.add_inst("vcmp.f64 d1, d0")
                 self.add_inst("vmrs APSR_nzcv, fpscr")
                 lbl_true = self.gerar_label("op_true")
                 lbl_end = self.gerar_label("op_end")
 
+                #Compara e pula de acordo com a condição
                 if item.simbolo == '<': self.add_inst(f"blt {lbl_true}")
                 elif item.simbolo == '>': self.add_inst(f"bgt {lbl_true}")
                 elif item.simbolo == '==': self.add_inst(f"beq {lbl_true}")
@@ -409,7 +420,7 @@ class GeradorAssembly:
                 self.add_inst("vldr d2, [r0]")
                 self.codigo.append(f"{lbl_end}:")
 
-            self.add_inst("vpush {d2}")
+            self.add_inst("vpush {d2}") # Empilha o resultado final de volta
             return prof - 1 
 
         return prof
