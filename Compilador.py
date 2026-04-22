@@ -1,4 +1,5 @@
 import sys
+import json
 contador_ciclos = 0
 
 def analisador_lexico(linha_texto):
@@ -429,6 +430,50 @@ def salvar_tokens(lista_tokens, nome_arquivo):
         for tipo, valor in lista_tokens:
             f.write(f"<{tipo}, {valor}>\n")
 
+def ast_para_dict(no):
+    #Converte os objetos Python da AST em um Dicionário padrão.
+    if isinstance(no, NoPrograma):
+        return {
+            "tipo": "ProgramaRaiz",
+            "comandos": [ast_para_dict(cmd) for cmd in no.comandos]
+        }
+    elif isinstance(no, NoBloco):
+        return {
+            "tipo": "Bloco",
+            "itens": [ast_para_dict(item) for item in no.itens]
+        }
+    elif isinstance(no, NoIf):
+        return {
+            "tipo": "DecisaoIF",
+            "condicao": ast_para_dict(no.condicao),
+            "bloco_verdadeiro": ast_para_dict(no.bloco_verdadeiro)
+        }
+    elif isinstance(no, NoWhile):
+        return {
+            "tipo": "LacoWHILE",
+            "condicao": ast_para_dict(no.condicao),
+            "bloco_loop": ast_para_dict(no.bloco_loop)
+        }
+    elif isinstance(no, NoNumero):
+        return {"tipo": "Numero", "valor": no.valor}
+    elif isinstance(no, NoVariavel):
+        return {"tipo": "Variavel", "nome": no.nome}
+    elif isinstance(no, NoOperador):
+        return {"tipo": "Operador", "simbolo": no.simbolo}
+    elif isinstance(no, NoComando):
+        return {"tipo": "Comando", "nome": no.nome}
+    else:
+        return {"tipo": "Desconhecido"}
+
+def salvar_ast_json(arvore, nome_arquivo="arvore.json"):
+    #Salva o dicionário gerado em um arquivo .json perfeitamente formatado.
+    dicionario_ast = ast_para_dict(arvore)
+    with open(nome_arquivo, "w", encoding="utf-8") as f:
+        # Formata o arquivo para uma melhor visualização
+        json.dump(dicionario_ast, f, indent=4, ensure_ascii=False)
+
+
+
 def main():
     if len(sys.argv) < 2:
         print("Uso correto: python Compilador.py <arquivo_de_teste.txt>")
@@ -465,6 +510,9 @@ def main():
             print("Iniciando a Analise Sintatica...")
             arvore_ast = analisador_sintatico(todos_tokens)
             print("Sucesso! Arvore Sintatica (AST) gerada sem erros.")
+
+            salvar_ast_json(arvore_ast, "arvore_sintatica.json")
+            print("Arquivo JSON da arvore salvo: arvore_sintatica.json")
     
             gerador = GeradorAssembly(arvore_ast)
             gerador.compilar(nome_arquivo_assembly)
