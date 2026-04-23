@@ -612,10 +612,88 @@ def salvar_arvore_json(arvore, nome_arquivo):
     with open(nome_arquivo, 'w', encoding='utf-8') as f:
         json.dump(dicionario, f, indent=2, ensure_ascii=False)
 
+def arvore_para_markdown(no, prefixo="", eh_ultimo=True):
+    conector = "└── " if eh_ultimo else "├── "
+    extensao = "    " if eh_ultimo else "│   "
+    linhas = []
+ 
+    if isinstance(no, NoPrograma):
+        linhas.append(f"{prefixo}**Programa**")
+        for i, cmd in enumerate(no.comandos):
+            ultimo = (i == len(no.comandos) - 1)
+            linhas.append(arvore_para_markdown(cmd, prefixo + ("    " if ultimo else "    "), ultimo))
+ 
+    elif isinstance(no, NoBloco):
+        linhas.append(f"{prefixo}{conector}Bloco")
+        for i, item in enumerate(no.itens):
+            ultimo = (i == len(no.itens) - 1)
+            linhas.append(arvore_para_markdown(item, prefixo + extensao, ultimo))
+ 
+    elif isinstance(no, NoIf):
+        linhas.append(f"{prefixo}{conector}**IF**")
+        linhas.append(f"{prefixo}{extensao}├── Condição:")
+        linhas.append(arvore_para_markdown(no.condicao,        prefixo + extensao + "│   ", False))
+        linhas.append(f"{prefixo}{extensao}└── Bloco Verdadeiro:")
+        linhas.append(arvore_para_markdown(no.bloco_verdadeiro, prefixo + extensao + "    ", True))
+ 
+    elif isinstance(no, NoWhile):
+        linhas.append(f"{prefixo}{conector}**WHILE**")
+        linhas.append(f"{prefixo}{extensao}├── Condição:")
+        linhas.append(arvore_para_markdown(no.condicao,  prefixo + extensao + "│   ", False))
+        linhas.append(f"{prefixo}{extensao}└── Bloco Loop:")
+        linhas.append(arvore_para_markdown(no.bloco_loop, prefixo + extensao + "    ", True))
+ 
+    elif isinstance(no, NoMem):
+        linhas.append(f"{prefixo}{conector}**MEM** → `{no.nome_mem}`")
+        linhas.append(arvore_para_markdown(no.valor, prefixo + extensao, True))
+ 
+    elif isinstance(no, NoRes):
+        linhas.append(f"{prefixo}{conector}**RES** ← linha `{no.n}`")
+ 
+    elif isinstance(no, NoNumero):
+        linhas.append(f"{prefixo}{conector}Número: `{no.valor}`")
+ 
+    elif isinstance(no, NoVariavel):
+        linhas.append(f"{prefixo}{conector}Variável: `{no.nome}`")
+ 
+    elif isinstance(no, NoOperador):
+        linhas.append(f"{prefixo}{conector}Operador: `{no.simbolo}`")
+ 
+    elif isinstance(no, NoComando):
+        linhas.append(f"{prefixo}{conector}Comando: `{no.nome}`")
+ 
+    else:
+        linhas.append(f"{prefixo}{conector}Desconhecido: `{no}`")
+ 
+    return "\n".join(linhas)
+ 
+ 
+def salvar_arvore_markdown(arvore, nome_arquivo_entrada, nome_arquivo):
+    # Gera o arquivo markdown com a representação visual da árvore sintática.
+    conteudo = f"# Árvore Sintática\n\n"
+    conteudo += f"**Arquivo de entrada:** `{nome_arquivo_entrada}`\n\n"
+    conteudo += "```\n"
+    conteudo += arvore_para_markdown(arvore)
+    conteudo += "\n```\n"
+    with open(nome_arquivo, 'w', encoding='utf-8') as f:
+        f.write(conteudo)
+
 def salvar_tokens(lista_tokens, nome_arquivo):
     with open(nome_arquivo, 'w') as f:
         for tipo, valor in lista_tokens:
             f.write(f"<{tipo}, {valor}>\n")
+
+def gerarArvore(derivacao, nome_arquivo_entrada):
+    nome_json = "arvore_sintatica.json"
+    nome_md   = "arvore_sintatica.md"
+ 
+    salvar_arvore_json(derivacao, nome_json)
+    salvar_arvore_markdown(derivacao, nome_arquivo_entrada, nome_md)
+ 
+    return {
+        "json": nome_json,
+        "markdown": nome_md
+    }
 
 def main():
     if len(sys.argv) < 2:
@@ -626,7 +704,6 @@ def main():
 
     nome_arquivo_assembly = "saida_assembly.s"
     nome_arquivo_tokens = "tokens_gerados.txt"
-    nome_arquivo_ast = "arvore_sintatica.json"
     todos_tokens = []
 
     try:
@@ -655,8 +732,9 @@ def main():
             arvore_ast = analisador_sintatico(todos_tokens)
             print("Sucesso! Arvore Sintatica (AST) gerada sem erros.")
 
-            salvar_arvore_json(arvore_ast, nome_arquivo_ast)
-            print(f"Sucesso! Arvore Sintatica salva em: {nome_arquivo_ast}")
+            arquivos = gerarArvore(arvore_ast, nome_arquivo_entrada)
+            print(f"Sucesso! Arvore Sintatica salva em: {arquivos['json']}")
+            print(f"Sucesso! Arvore Sintatica em Markdown salva em: {arquivos['markdown']}")
     
             gerador = GeradorAssembly(arvore_ast)
             gerador.compilar(nome_arquivo_assembly)
