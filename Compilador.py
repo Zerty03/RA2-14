@@ -472,7 +472,46 @@ def salvar_ast_json(arvore, nome_arquivo="arvore.json"):
         # Formata o arquivo para uma melhor visualização
         json.dump(dicionario_ast, f, indent=4, ensure_ascii=False)
 
+def salvar_arvore_markdown(no_raiz, nome_arquivo="arvore.md"):
+    """Gera a árvore em formato de texto e salva em um arquivo Markdown."""
+    linhas_md = ["# Representação da Árvore Sintática (AST)\n", "```text"]
 
+    def varrer_arvore(no, nivel=0):
+        espaco = "    " * nivel
+        if isinstance(no, NoPrograma):
+            linhas_md.append(f"{espaco}└── [S] Programa Raiz")
+            for cmd in no.comandos: varrer_arvore(cmd, nivel + 1)
+                
+        elif isinstance(no, NoBloco):
+            linhas_md.append(f"{espaco}├── [B] Bloco de Comandos")
+            for item in no.itens: varrer_arvore(item, nivel + 1)
+                
+        elif isinstance(no, NoIf):
+            linhas_md.append(f"{espaco}├── [IF] Estrutura de Decisão")
+            linhas_md.append(f"{espaco}│   ├── Condição:")
+            varrer_arvore(no.condicao, nivel + 2)
+            linhas_md.append(f"{espaco}│   └── Bloco Verdadeiro:")
+            varrer_arvore(no.bloco_verdadeiro, nivel + 2)
+            
+        elif isinstance(no, NoWhile):
+            linhas_md.append(f"{espaco}├── [WHILE] Laço de Repetição")
+            linhas_md.append(f"{espaco}│   ├── Condição:")
+            varrer_arvore(no.condicao, nivel + 2)
+            linhas_md.append(f"{espaco}│   └── Bloco do Laço:")
+            varrer_arvore(no.bloco_loop, nivel + 2)
+            
+        elif isinstance(no, NoNumero):
+            linhas_md.append(f"{espaco}└── (num) Número: {no.valor}")
+        elif isinstance(no, NoVariavel):
+            linhas_md.append(f"{espaco}└── (var) Variável: {no.nome}")
+        elif isinstance(no, NoOperador):
+            linhas_md.append(f"{espaco}└── (op) Operador: {no.simbolo}")
+
+    varrer_arvore(no_raiz)
+    linhas_md.append("```\n")
+
+    with open(nome_arquivo, "w", encoding="utf-8") as f:
+        f.write("\n".join(linhas_md))
 
 def main():
     if len(sys.argv) < 2:
@@ -512,7 +551,8 @@ def main():
             print("Sucesso! Arvore Sintatica (AST) gerada sem erros.")
 
             salvar_ast_json(arvore_ast, "arvore_sintatica.json")
-            print("Arquivo JSON da arvore salvo: arvore_sintatica.json")
+            salvar_arvore_markdown(arvore_ast, "arvore.md") 
+            print("Arquivos da arvore salvos: 'arvore.json' e 'arvore.md'")
     
             gerador = GeradorAssembly(arvore_ast)
             gerador.compilar(nome_arquivo_assembly)
