@@ -1,4 +1,4 @@
-START
+( START )
 ( 15.5 A )
 ( 3.0 B )
 ( A B + SOMA )
@@ -8,4 +8,4 @@ START
 ( A 2.0 | DIV_REAL )
 ( SOMA MULTIPLICACAO + RESULTADO )
 ( RESULTADO )
-END
+( END ) 
