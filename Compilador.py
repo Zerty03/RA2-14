@@ -532,11 +532,6 @@ class GeradorAssembly:
 
         return prof
 
-def salvar_tokens(lista_tokens, nome_arquivo):
-    with open(nome_arquivo, 'w') as f:
-        for tipo, valor in lista_tokens:
-            f.write(f"<{tipo}, {valor}>\n")
-
 def arvore_para_dict(no):
     # Converte recursivamente qualquer nó da AST em um dicionário
     # serializável para JSON. Cada nó recebe um campo 'tipo' para
