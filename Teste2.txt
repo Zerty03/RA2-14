@@ -1,7 +1,7 @@
 START
 ( 0.0 CONTADOR )
 ( 10.0 LIMITE )
-( ( CONTADOR LIMITE < ) ( CONTADOR 1.0 + CONTADOR ) WHILE )
+( ( (CONTADOR) (LIMITE) < ) ( ((CONTADOR) 1.0 + ) CONTADOR ) WHILE )
 ( 5.0 X )
 ( ( X 5.0 == ) ( X 10.0 + X ) IF )
 ( ( X 15.0 > ) ( 0.0 X ) IF )

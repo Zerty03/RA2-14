@@ -537,6 +537,86 @@ def salvar_tokens(lista_tokens, nome_arquivo):
         for tipo, valor in lista_tokens:
             f.write(f"<{tipo}, {valor}>\n")
 
+def arvore_para_dict(no):
+    # Converte recursivamente qualquer nó da AST em um dicionário
+    # serializável para JSON. Cada nó recebe um campo 'tipo' para
+    # identificação, mais os campos específicos de cada classe.
+    if no is None:
+        return None
+ 
+    if isinstance(no, NoPrograma):
+        return {
+            "tipo": "Programa",
+            "comandos": [arvore_para_dict(c) for c in no.comandos]
+        }
+ 
+    if isinstance(no, NoBloco):
+        return {
+            "tipo": "Bloco",
+            "itens": [arvore_para_dict(i) for i in no.itens]
+        }
+ 
+    if isinstance(no, NoIf):
+        return {
+            "tipo": "If",
+            "condicao": arvore_para_dict(no.condicao),
+            "bloco_verdadeiro": arvore_para_dict(no.bloco_verdadeiro)
+        }
+ 
+    if isinstance(no, NoWhile):
+        return {
+            "tipo": "While",
+            "condicao": arvore_para_dict(no.condicao),
+            "bloco_loop": arvore_para_dict(no.bloco_loop)
+        }
+ 
+    if isinstance(no, NoMem):
+        return {
+            "tipo": "Mem",
+            "nome_mem": no.nome_mem,
+            "valor": arvore_para_dict(no.valor)
+        }
+ 
+    if isinstance(no, NoRes):
+        return {
+            "tipo": "Res",
+            "n": no.n
+        }
+ 
+    if isinstance(no, NoNumero):
+        return {
+            "tipo": "Numero",
+            "valor": no.valor
+        }
+ 
+    if isinstance(no, NoVariavel):
+        return {
+            "tipo": "Variavel",
+            "nome": no.nome
+        }
+ 
+    if isinstance(no, NoOperador):
+        return {
+            "tipo": "Operador",
+            "simbolo": no.simbolo
+        }
+ 
+    if isinstance(no, NoComando):
+        return {
+            "tipo": "Comando",
+            "nome": no.nome
+        }
+ 
+    # Fallback para nós desconhecidos
+    return {"tipo": "Desconhecido", "repr": str(no)}
+ 
+ 
+def salvar_arvore_json(arvore, nome_arquivo):
+    # Serializa a AST para JSON e salva no arquivo especificado.
+    dicionario = arvore_para_dict(arvore)
+    with open(nome_arquivo, 'w', encoding='utf-8') as f:
+        json.dump(dicionario, f, indent=2, ensure_ascii=False)
+
 def main():
     if len(sys.argv) < 2:
         print("Uso correto: python Compilador.py <arquivo_de_teste.txt>")
@@ -573,6 +653,10 @@ def main():
             print("Iniciando a Analise Sintatica...")
             arvore_ast = analisador_sintatico(todos_tokens)
             print("Sucesso! Arvore Sintatica (AST) gerada sem erros.")
+
+            salvar_ast_json(arvore_ast, "arvore_sintatica.json")
+            salvar_arvore_markdown(arvore_ast, "arvore.md") 
+            print("Arquivos da arvore salvos: 'arvore.json' e 'arvore.md'")
     
             gerador = GeradorAssembly(arvore_ast)
             gerador.compilar(nome_arquivo_assembly)
