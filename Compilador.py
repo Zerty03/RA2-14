@@ -1,4 +1,10 @@
+# Integrantes do grupo:
+# Eugenio Polistchuk Berendsen - Zerty03
+
+# Nome do grupo no Canvas: RA2-14
+
 import sys
+import json
 contador_ciclos = 0
 
 def analisador_lexico(linha_texto):
@@ -388,7 +394,7 @@ class GeradorAssembly:
         elif isinstance(no, NoRes):
             # (N RES): busca o resultado salvo N linhas atrás no histórico
             self.add_inst(f"\n// COMANDO RES: Lendo resultado de {no.n} linha(s) atrás")
-            self.add_inst(f"ldr r0, =res_{no.n}")
+            self.add_inst(f"ldr r0, =res_linha_{no.n}")
             self.add_inst("vldr d0, [r0]")
             self.add_inst("vpush {d0}")
 
