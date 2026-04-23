@@ -102,6 +102,23 @@ def analisador_lexico(linha_texto):
 
     return tokens
 
+def lerTokens(arquivo):
+    todos_tokens = []
+    nome_saida   = "tokens_gerados.txt"
+ 
+    with open(arquivo, 'r', encoding='utf-8') as f:
+        linhas = f.readlines()
+ 
+    for numero_linha, linha in enumerate(linhas, start=1):
+        try:
+            tokens_da_linha = analisador_lexico(linha)
+            todos_tokens.extend(tokens_da_linha)
+        except ValueError as erro:
+            raise ValueError(f"Erro Léxico na linha {numero_linha}: {erro}")
+ 
+    salvar_tokens(todos_tokens, nome_saida)
+    return todos_tokens
+
 # Classes da arvore sintática (AST)
 class NoAST:
     #Clase base para todos os nós da árvore herdam deste
@@ -703,29 +720,19 @@ def main():
     nome_arquivo_entrada = sys.argv[1]
 
     nome_arquivo_assembly = "saida_assembly.s"
-    nome_arquivo_tokens = "tokens_gerados.txt"
     todos_tokens = []
 
     try:
         print(f"Lendo o arquivo: {nome_arquivo_entrada} ...")
 
-        with open(nome_arquivo_entrada, 'r') as arquivo:
-            linhas = arquivo.readlines()
+        try:
+            todos_tokens = lerTokens(nome_arquivo_entrada)
+        except ValueError as erro:
+            print(f"\n Erro de compilação")
+            print(erro)
+            sys.exit(1)
 
-            numero_linha = 1
-            for linha in linhas:
-                try:
-                    tokens_da_linha = analisador_lexico(linha)
-                    todos_tokens.extend(tokens_da_linha)
-                except ValueError as erro:
-                    print(f"\n Erro de compilação")
-                    print(f"Erro Lexico na linha {numero_linha}: {erro}")
-                    sys.exit(1)
-
-                numero_linha += 1
-
-        salvar_tokens(todos_tokens, nome_arquivo_tokens)
-        print(f"Sucesso! Arquivo de tokens gerado: {nome_arquivo_tokens}")
+        print(f"Sucesso! Arquivo de tokens gerado: tokens_gerados.txt")
 
         try:
             print("Iniciando a Analise Sintatica...")
