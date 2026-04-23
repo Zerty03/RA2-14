@@ -102,6 +102,23 @@ def analisador_lexico(linha_texto):
 
     return tokens
 
+def lerTokens(arquivo):
+    todos_tokens = []
+    nome_saida   = "tokens_gerados.txt"
+ 
+    with open(arquivo, 'r', encoding='utf-8') as f:
+        linhas = f.readlines()
+ 
+    for numero_linha, linha in enumerate(linhas, start=1):
+        try:
+            tokens_da_linha = analisador_lexico(linha)
+            todos_tokens.extend(tokens_da_linha)
+        except ValueError as erro:
+            raise ValueError(f"Erro Léxico na linha {numero_linha}: {erro}")
+ 
+    salvar_tokens(todos_tokens, nome_saida)
+    return todos_tokens
+
 # Classes da arvore sintática (AST)
 class NoAST:
     #Clase base para todos os nós da árvore herdam deste
@@ -170,9 +187,10 @@ class NoRes(NoAST):
         self.n = n
 
 class Parser:
-    def __init__(self, tokens):
-        self.tokens = tokens
-        self.pos = 0 #aponta para o token atual
+    def __init__(self, tokens, tabela_ll1=None):
+        self.tokens    = tokens
+        self.pos       = 0          # aponta para o token atual
+        self.tabela    = tabela_ll1 # tabela LL(1) para consulta e validação
 
     def token_atual(self):
         # Retorna o token atual ou um marcador de fim de arquivo
@@ -242,13 +260,13 @@ class Parser:
                 else:
                     raise SyntaxError(f"Erro Sintático: Formato inválido para MEM. Use (valor NOME MEM)")
 
-        # (N RES): dois itens — o número N e o comando RES
         if len(itens) == 2 and isinstance(itens[-1], NoComando) and itens[-1].nome == "RES":
             if isinstance(itens[0], NoNumero):
                 return NoRes(int(itens[0].valor))
             else:
                 raise SyntaxError("Erro Sintático: RES requer um número inteiro. Use (N RES)")
-            
+
+        # (NOME): leitura de variável de memória — bloco com apenas uma variável
         if len(itens) == 1 and isinstance(itens[0], NoVariavel):
             no_bloco = NoBloco()
             no_bloco.itens = itens
@@ -287,8 +305,8 @@ class Parser:
             tipo, valor = self.token_atual()
         return itens
     
-def analisador_sintatico(tokens):
-    parser = Parser(tokens)
+def analisador_sintatico(tokens, tabela_ll1=None):
+    parser = Parser(tokens, tabela_ll1)
     return parser.parse_programa()
 
 class GeradorAssembly:
@@ -612,10 +630,164 @@ def salvar_arvore_json(arvore, nome_arquivo):
     with open(nome_arquivo, 'w', encoding='utf-8') as f:
         json.dump(dicionario, f, indent=2, ensure_ascii=False)
 
+def arvore_para_markdown(no, prefixo="", eh_ultimo=True):
+    conector = "└── " if eh_ultimo else "├── "
+    extensao = "    " if eh_ultimo else "│   "
+    linhas = []
+ 
+    if isinstance(no, NoPrograma):
+        linhas.append(f"{prefixo}**Programa**")
+        for i, cmd in enumerate(no.comandos):
+            ultimo = (i == len(no.comandos) - 1)
+            linhas.append(arvore_para_markdown(cmd, prefixo + ("    " if ultimo else "    "), ultimo))
+ 
+    elif isinstance(no, NoBloco):
+        linhas.append(f"{prefixo}{conector}Bloco")
+        for i, item in enumerate(no.itens):
+            ultimo = (i == len(no.itens) - 1)
+            linhas.append(arvore_para_markdown(item, prefixo + extensao, ultimo))
+ 
+    elif isinstance(no, NoIf):
+        linhas.append(f"{prefixo}{conector}**IF**")
+        linhas.append(f"{prefixo}{extensao}├── Condição:")
+        linhas.append(arvore_para_markdown(no.condicao,        prefixo + extensao + "│   ", False))
+        linhas.append(f"{prefixo}{extensao}└── Bloco Verdadeiro:")
+        linhas.append(arvore_para_markdown(no.bloco_verdadeiro, prefixo + extensao + "    ", True))
+ 
+    elif isinstance(no, NoWhile):
+        linhas.append(f"{prefixo}{conector}**WHILE**")
+        linhas.append(f"{prefixo}{extensao}├── Condição:")
+        linhas.append(arvore_para_markdown(no.condicao,  prefixo + extensao + "│   ", False))
+        linhas.append(f"{prefixo}{extensao}└── Bloco Loop:")
+        linhas.append(arvore_para_markdown(no.bloco_loop, prefixo + extensao + "    ", True))
+ 
+    elif isinstance(no, NoMem):
+        linhas.append(f"{prefixo}{conector}**MEM** → `{no.nome_mem}`")
+        linhas.append(arvore_para_markdown(no.valor, prefixo + extensao, True))
+ 
+    elif isinstance(no, NoRes):
+        linhas.append(f"{prefixo}{conector}**RES** ← linha `{no.n}`")
+ 
+    elif isinstance(no, NoNumero):
+        linhas.append(f"{prefixo}{conector}Número: `{no.valor}`")
+ 
+    elif isinstance(no, NoVariavel):
+        linhas.append(f"{prefixo}{conector}Variável: `{no.nome}`")
+ 
+    elif isinstance(no, NoOperador):
+        linhas.append(f"{prefixo}{conector}Operador: `{no.simbolo}`")
+ 
+    elif isinstance(no, NoComando):
+        linhas.append(f"{prefixo}{conector}Comando: `{no.nome}`")
+ 
+    else:
+        linhas.append(f"{prefixo}{conector}Desconhecido: `{no}`")
+ 
+    return "\n".join(linhas)
+ 
+ 
+def salvar_arvore_markdown(arvore, nome_arquivo_entrada, nome_arquivo):
+    # Gera o arquivo markdown com a representação visual da árvore sintática.
+    conteudo = f"# Árvore Sintática\n\n"
+    conteudo += f"**Arquivo de entrada:** `{nome_arquivo_entrada}`\n\n"
+    conteudo += "```\n"
+    conteudo += arvore_para_markdown(arvore)
+    conteudo += "\n```\n"
+    with open(nome_arquivo, 'w', encoding='utf-8') as f:
+        f.write(conteudo)
+
 def salvar_tokens(lista_tokens, nome_arquivo):
     with open(nome_arquivo, 'w') as f:
         for tipo, valor in lista_tokens:
             f.write(f"<{tipo}, {valor}>\n")
+
+def construirGramatica():
+    gramatica = {
+        'S': [
+            ['(start)', 'C', '(end)']
+        ],
+        'C': [
+            ['B', 'C'],
+            ['ε']
+        ],
+        'B': [
+            ['(', 'O', ')']
+        ],
+        'O': [
+            ['I', 'O'],
+            ['ε']
+        ],
+        'I': [
+            ['num'],
+            ['var'],
+            ['op'],
+            ['cmd'],
+            ['B'] # I → B  (subbloco aninhado)
+        ]
+    }
+ 
+    first = {
+        'S': {'(start)'},
+        'C': {'(',  'ε'}, # pode começar com '(' via B, ou ser vazio
+        'B': {'('},
+        'O': {'num', 'var', 'op', 'cmd', '(', 'ε'},# itens ou vazio
+        'I': {'num', 'var', 'op', 'cmd', '('}  # nunca vazio
+    }
+ 
+    follow = {
+        'S': {'$'},
+        'C': {'(end)'},# C aparece antes de (end) em S
+        'B': {'(', '(end)'},# B pode ser seguido de outro B (via C) ou (end)
+        'O': {')'}, # O aparece antes de ')' em B
+        'I': {'num', 'var', 'op', 'cmd', '(', ')'}  # I é seguido por O ou ')'
+    }
+ 
+    tabela_ll1 = {
+        'S': {
+            '(start)': ['(start)', 'C', '(end)']
+        },
+        'C': {
+            '(':     ['B', 'C'], # FIRST(B) = {(}
+            '(end)': ['ε'] # ε porque (end) ∈ FOLLOW(C)
+        },
+        'B': {
+            '(':     ['(', 'O', ')']
+        },
+        'O': {
+            'num':   ['I', 'O'],
+            'var':   ['I', 'O'],
+            'op':    ['I', 'O'],
+            'cmd':   ['I', 'O'],
+            '(':     ['I', 'O'], # I → B começa com '('
+            ')':     ['ε'] # ε porque ')' ∈ FOLLOW(O)
+        },
+        'I': {
+            'num':   ['num'],
+            'var':   ['var'],
+            'op':    ['op'],
+            'cmd':   ['cmd'],
+            '(':     ['B'] # I → B
+        }
+    }
+ 
+    return {
+        'gramatica':  gramatica,
+        'first':      first,
+        'follow':     follow,
+        'tabela_ll1': tabela_ll1
+    }
+
+def gerarArvore(derivacao, nome_arquivo_entrada):
+    nome_json = "arvore_sintatica.json"
+    nome_md   = "arvore_sintatica.md"
+ 
+    salvar_arvore_json(derivacao, nome_json)
+    salvar_arvore_markdown(derivacao, nome_arquivo_entrada, nome_md)
+ 
+    return {
+        "json": nome_json,
+        "markdown": nome_md
+    }
 
 def main():
     if len(sys.argv) < 2:
@@ -625,38 +797,32 @@ def main():
     nome_arquivo_entrada = sys.argv[1]
 
     nome_arquivo_assembly = "saida_assembly.s"
-    nome_arquivo_tokens = "tokens_gerados.txt"
-    nome_arquivo_ast = "arvore_sintatica.json"
     todos_tokens = []
 
     try:
         print(f"Lendo o arquivo: {nome_arquivo_entrada} ...")
 
-        with open(nome_arquivo_entrada, 'r') as arquivo:
-            linhas = arquivo.readlines()
+        try:
+            todos_tokens = lerTokens(nome_arquivo_entrada)
+        except ValueError as erro:
+            print(f"\n Erro de compilação")
+            print(erro)
+            sys.exit(1)
 
-            numero_linha = 1
-            for linha in linhas:
-                try:
-                    tokens_da_linha = analisador_lexico(linha)
-                    todos_tokens.extend(tokens_da_linha)
-                except ValueError as erro:
-                    print(f"\n Erro de compilação")
-                    print(f"Erro Lexico na linha {numero_linha}: {erro}")
-                    sys.exit(1)
-
-                numero_linha += 1
-
-        salvar_tokens(todos_tokens, nome_arquivo_tokens)
-        print(f"Sucesso! Arquivo de tokens gerado: {nome_arquivo_tokens}")
+        print(f"Sucesso! Arquivo de tokens gerado: tokens_gerados.txt")
 
         try:
+            print("Construindo a Gramatica LL(1)...")
+            estrutura = construirGramatica()
+            print("Sucesso! Gramatica LL(1) construida.")
+
             print("Iniciando a Analise Sintatica...")
-            arvore_ast = analisador_sintatico(todos_tokens)
+            arvore_ast = analisador_sintatico(todos_tokens, estrutura['tabela_ll1'])
             print("Sucesso! Arvore Sintatica (AST) gerada sem erros.")
 
-            salvar_arvore_json(arvore_ast, nome_arquivo_ast)
-            print(f"Sucesso! Arvore Sintatica salva em: {nome_arquivo_ast}")
+            arquivos = gerarArvore(arvore_ast, nome_arquivo_entrada)
+            print(f"Sucesso! Arvore Sintatica salva em: {arquivos['json']}")
+            print(f"Sucesso! Arvore Sintatica em Markdown salva em: {arquivos['markdown']}")
     
             gerador = GeradorAssembly(arvore_ast)
             gerador.compilar(nome_arquivo_assembly)
