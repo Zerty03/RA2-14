@@ -363,7 +363,6 @@ class GeradorAssembly:
         # Espaços para armazenar resultados de cada linha (usado pelo RES)
         for label in self.resultado_linhas:
             self.codigo.append(f"{label}: .space 8")
-            self.codigo.append(f"var_{var}: .space 8") # 8 bytes = 64 bits para FPU
 
         # Salva tudo no disco
         with open(nome_arquivo, "w") as f:
