@@ -532,11 +532,6 @@ class GeradorAssembly:
 
         return prof
 
-def salvar_tokens(lista_tokens, nome_arquivo):
-    with open(nome_arquivo, 'w') as f:
-        for tipo, valor in lista_tokens:
-            f.write(f"<{tipo}, {valor}>\n")
-
 def arvore_para_dict(no):
     # Converte recursivamente qualquer nó da AST em um dicionário
     # serializável para JSON. Cada nó recebe um campo 'tipo' para
@@ -617,6 +612,11 @@ def salvar_arvore_json(arvore, nome_arquivo):
     with open(nome_arquivo, 'w', encoding='utf-8') as f:
         json.dump(dicionario, f, indent=2, ensure_ascii=False)
 
+def salvar_tokens(lista_tokens, nome_arquivo):
+    with open(nome_arquivo, 'w') as f:
+        for tipo, valor in lista_tokens:
+            f.write(f"<{tipo}, {valor}>\n")
+
 def main():
     if len(sys.argv) < 2:
         print("Uso correto: python Compilador.py <arquivo_de_teste.txt>")
@@ -626,6 +626,7 @@ def main():
 
     nome_arquivo_assembly = "saida_assembly.s"
     nome_arquivo_tokens = "tokens_gerados.txt"
+    nome_arquivo_ast = "arvore_sintatica.json"
     todos_tokens = []
 
     try:
@@ -654,9 +655,8 @@ def main():
             arvore_ast = analisador_sintatico(todos_tokens)
             print("Sucesso! Arvore Sintatica (AST) gerada sem erros.")
 
-            salvar_ast_json(arvore_ast, "arvore_sintatica.json")
-            salvar_arvore_markdown(arvore_ast, "arvore.md") 
-            print("Arquivos da arvore salvos: 'arvore.json' e 'arvore.md'")
+            salvar_arvore_json(arvore_ast, nome_arquivo_ast)
+            print(f"Sucesso! Arvore Sintatica salva em: {nome_arquivo_ast}")
     
             gerador = GeradorAssembly(arvore_ast)
             gerador.compilar(nome_arquivo_assembly)
