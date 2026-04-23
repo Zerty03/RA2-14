@@ -430,88 +430,85 @@ def salvar_tokens(lista_tokens, nome_arquivo):
         for tipo, valor in lista_tokens:
             f.write(f"<{tipo}, {valor}>\n")
 
-def ast_para_dict(no):
-    #Converte os objetos Python da AST em um Dicionário padrão.
+def arvore_para_dict(no):
+    # Converte recursivamente qualquer nó da AST em um dicionário
+    # serializável para JSON. Cada nó recebe um campo 'tipo' para
+    # identificação, mais os campos específicos de cada classe.
+    if no is None:
+        return None
+ 
     if isinstance(no, NoPrograma):
         return {
-            "tipo": "ProgramaRaiz",
-            "comandos": [ast_para_dict(cmd) for cmd in no.comandos]
+            "tipo": "Programa",
+            "comandos": [arvore_para_dict(c) for c in no.comandos]
         }
-    elif isinstance(no, NoBloco):
+ 
+    if isinstance(no, NoBloco):
         return {
             "tipo": "Bloco",
-            "itens": [ast_para_dict(item) for item in no.itens]
+            "itens": [arvore_para_dict(i) for i in no.itens]
         }
-    elif isinstance(no, NoIf):
+ 
+    if isinstance(no, NoIf):
         return {
-            "tipo": "DecisaoIF",
-            "condicao": ast_para_dict(no.condicao),
-            "bloco_verdadeiro": ast_para_dict(no.bloco_verdadeiro)
+            "tipo": "If",
+            "condicao": arvore_para_dict(no.condicao),
+            "bloco_verdadeiro": arvore_para_dict(no.bloco_verdadeiro)
         }
-    elif isinstance(no, NoWhile):
+ 
+    if isinstance(no, NoWhile):
         return {
-            "tipo": "LacoWHILE",
-            "condicao": ast_para_dict(no.condicao),
-            "bloco_loop": ast_para_dict(no.bloco_loop)
+            "tipo": "While",
+            "condicao": arvore_para_dict(no.condicao),
+            "bloco_loop": arvore_para_dict(no.bloco_loop)
         }
-    elif isinstance(no, NoNumero):
-        return {"tipo": "Numero", "valor": no.valor}
-    elif isinstance(no, NoVariavel):
-        return {"tipo": "Variavel", "nome": no.nome}
-    elif isinstance(no, NoOperador):
-        return {"tipo": "Operador", "simbolo": no.simbolo}
-    elif isinstance(no, NoComando):
-        return {"tipo": "Comando", "nome": no.nome}
-    else:
-        return {"tipo": "Desconhecido"}
-
-def salvar_ast_json(arvore, nome_arquivo="arvore.json"):
-    #Salva o dicionário gerado em um arquivo .json perfeitamente formatado.
-    dicionario_ast = ast_para_dict(arvore)
-    with open(nome_arquivo, "w", encoding="utf-8") as f:
-        # Formata o arquivo para uma melhor visualização
-        json.dump(dicionario_ast, f, indent=4, ensure_ascii=False)
-
-def salvar_arvore_markdown(no_raiz, nome_arquivo="arvore.md"):
-    """Gera a árvore em formato de texto e salva em um arquivo Markdown."""
-    linhas_md = ["# Representação da Árvore Sintática (AST)\n", "```text"]
-
-    def varrer_arvore(no, nivel=0):
-        espaco = "    " * nivel
-        if isinstance(no, NoPrograma):
-            linhas_md.append(f"{espaco}└── [S] Programa Raiz")
-            for cmd in no.comandos: varrer_arvore(cmd, nivel + 1)
-                
-        elif isinstance(no, NoBloco):
-            linhas_md.append(f"{espaco}├── [B] Bloco de Comandos")
-            for item in no.itens: varrer_arvore(item, nivel + 1)
-                
-        elif isinstance(no, NoIf):
-            linhas_md.append(f"{espaco}├── [IF] Estrutura de Decisão")
-            linhas_md.append(f"{espaco}│   ├── Condição:")
-            varrer_arvore(no.condicao, nivel + 2)
-            linhas_md.append(f"{espaco}│   └── Bloco Verdadeiro:")
-            varrer_arvore(no.bloco_verdadeiro, nivel + 2)
-            
-        elif isinstance(no, NoWhile):
-            linhas_md.append(f"{espaco}├── [WHILE] Laço de Repetição")
-            linhas_md.append(f"{espaco}│   ├── Condição:")
-            varrer_arvore(no.condicao, nivel + 2)
-            linhas_md.append(f"{espaco}│   └── Bloco do Laço:")
-            varrer_arvore(no.bloco_loop, nivel + 2)
-            
-        elif isinstance(no, NoNumero):
-            linhas_md.append(f"{espaco}└── (num) Número: {no.valor}")
-        elif isinstance(no, NoVariavel):
-            linhas_md.append(f"{espaco}└── (var) Variável: {no.nome}")
-        elif isinstance(no, NoOperador):
-            linhas_md.append(f"{espaco}└── (op) Operador: {no.simbolo}")
-
-    varrer_arvore(no_raiz)
-    linhas_md.append("```\n")
-
-    with open(nome_arquivo, "w", encoding="utf-8") as f:
-        f.write("\n".join(linhas_md))
+ 
+    if isinstance(no, NoMem):
+        return {
+            "tipo": "Mem",
+            "nome_mem": no.nome_mem,
+            "valor": arvore_para_dict(no.valor)
+        }
+ 
+    if isinstance(no, NoRes):
+        return {
+            "tipo": "Res",
+            "n": no.n
+        }
+ 
+    if isinstance(no, NoNumero):
+        return {
+            "tipo": "Numero",
+            "valor": no.valor
+        }
+ 
+    if isinstance(no, NoVariavel):
+        return {
+            "tipo": "Variavel",
+            "nome": no.nome
+        }
+ 
+    if isinstance(no, NoOperador):
+        return {
+            "tipo": "Operador",
+            "simbolo": no.simbolo
+        }
+ 
+    if isinstance(no, NoComando):
+        return {
+            "tipo": "Comando",
+            "nome": no.nome
+        }
+ 
+    # Fallback para nós desconhecidos
+    return {"tipo": "Desconhecido", "repr": str(no)}
+ 
+ 
+def salvar_arvore_json(arvore, nome_arquivo):
+    # Serializa a AST para JSON e salva no arquivo especificado.
+    dicionario = arvore_para_dict(arvore)
+    with open(nome_arquivo, 'w', encoding='utf-8') as f:
+        json.dump(dicionario, f, indent=2, ensure_ascii=False)
 
 def main():
     if len(sys.argv) < 2:
