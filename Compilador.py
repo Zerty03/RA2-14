@@ -1,4 +1,10 @@
+# Integrantes do grupo:
+# Eugenio Polistchuk Berendsen - Zerty03
+
+# Nome do grupo no Canvas: RA2-14
+
 import sys
+import json
 contador_ciclos = 0
 
 def analisador_lexico(linha_texto):
@@ -13,7 +19,7 @@ def analisador_lexico(linha_texto):
     tokens = []
     
     linha_limpa = linha_texto.replace("(START)", " START ").replace("(END)", " END ")
-    entrada = linha_texto + " "
+    entrada = linha_limpa + " "
 
     i = 0
     while i < len(entrada):
@@ -150,6 +156,19 @@ class NoComando(NoAST):
         #Ajuda a identificar as palavras IF e WHILE
         self.nome = nome
 
+#Comando (V MEN): Armazena valor em variável de memória
+class NoMem(NoAST):
+    def __init__(self, valor, nome_mem):
+        # valor = expressão/número a guardar; nome_mem = nome da variável
+        self.valor = valor
+        self.nome_mem = nome_mem
+ 
+# Comando (N RES): retorna resultado de N linhas atrás
+class NoRes(NoAST):
+    def __init__(self, n):
+        # n = quantas linhas atrás buscar o resultado
+        self.n = n
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -214,6 +233,26 @@ class Parser:
                 bloco_loop = itens[-2]
                 condicao = itens[-3]
                 return NoWhile(condicao, bloco_loop)
+            
+            elif comando_nome == "MEM":
+                if len(itens) >= 3 and isinstance(itens[-2], NoVariavel):
+                    nome_mem = itens[-2].nome
+                    valor_mem = itens[-3]
+                    return NoMem(valor_mem, nome_mem)
+                else:
+                    raise SyntaxError(f"Erro Sintático: Formato inválido para MEM. Use (valor NOME MEM)")
+
+        # (N RES): dois itens — o número N e o comando RES
+        if len(itens) == 2 and isinstance(itens[-1], NoComando) and itens[-1].nome == "RES":
+            if isinstance(itens[0], NoNumero):
+                return NoRes(int(itens[0].valor))
+            else:
+                raise SyntaxError("Erro Sintático: RES requer um número inteiro. Use (N RES)")
+            
+        if len(itens) == 1 and isinstance(itens[0], NoVariavel):
+            no_bloco = NoBloco()
+            no_bloco.itens = itens
+            return no_bloco
 
         # Se não for IF nem WHILE é um bloco matemático normal    
         no_bloco = NoBloco()
@@ -259,6 +298,7 @@ class GeradorAssembly:
         self.variaveis = set()
         self.numeros_memoria = [] #Guarda variáveis únicas para criar espaço na RAM depois
         self.contador_labels = 0 # Guarda os números fixos para colocar na RAM
+        self.resultado_linhas = []
 
     def gerar_label(self, prefixo):
         # Cria nomes únicos para os pulos no codigo
@@ -302,6 +342,11 @@ class GeradorAssembly:
         for var in self.variaveis:
             self.codigo.append(f"var_{var}: .space 8") # 8 bytes = 64 bits para FPU
 
+        # Espaços para armazenar resultados de cada linha (usado pelo RES)
+        for label in self.resultado_linhas:
+            self.codigo.append(f"{label}: .space 8")
+            self.codigo.append(f"var_{var}: .space 8") # 8 bytes = 64 bits para FPU
+
         # Salva tudo no disco
         with open(nome_arquivo, "w") as f:
             f.write("\n".join(self.codigo))
@@ -309,14 +354,49 @@ class GeradorAssembly:
 
     # Navegadores da Arvore Sintática
     def visitar_programa(self, no_prog):
-        for cmd in no_prog.comandos:
+        # Cada comando no programa corresponde a uma "linha".
+        # Após executar cada bloco, salvamos o topo da pilha FPU em res_N
+        # para que (N RES) possa recuperá-lo.
+        total = len(no_prog.comandos)
+        for idx, cmd in enumerate(no_prog.comandos):
             self.visitar_no(cmd, profundidade_pilha=0)
+            # Salva resultado do topo da pilha (se houver) como resultado desta linha
+            label_resultado = f"res_linha_{idx + 1}"
+            self.resultado_linhas.append(label_resultado)
+            self.add_inst(f"// Salvando resultado da linha {idx + 1}")
+            self.add_inst("vpop {d0}")
+            self.add_inst(f"ldr r0, =res_linha_{idx + 1}")
+            self.add_inst("vstr d0, [r0]")
 
     def visitar_no(self, no, profundidade_pilha=0):
         if isinstance(no, NoBloco):
             prof = profundidade_pilha
             for item in no.itens:
                 prof = self.visitar_item(item, prof)
+
+        elif isinstance(no, NoNumero):
+            # Número solto tratado como bloco de um item só
+            self.visitar_item(no, profundidade_pilha)
+
+        elif isinstance(no, NoVariavel):
+            # Variável solta tratada como bloco de um item só
+            self.visitar_item(no, profundidade_pilha)
+
+        elif isinstance(no, NoMem):
+            # (V NOME MEM): avalia o valor e salva na variável de memória
+            self.add_inst(f"\n// COMANDO MEM: Guardando resultado em '{no.nome_mem}'")
+            self.variaveis.add(no.nome_mem)
+            self.visitar_no(no.valor, profundidade_pilha) # empilha o valor
+            self.add_inst("vpop {d0}") # pega da pilha FPU
+            self.add_inst(f"ldr r0, =var_{no.nome_mem}")
+            self.add_inst("vstr d0, [r0]") # salva na RAM
+
+        elif isinstance(no, NoRes):
+            # (N RES): busca o resultado salvo N linhas atrás no histórico
+            self.add_inst(f"\n// COMANDO RES: Lendo resultado de {no.n} linha(s) atrás")
+            self.add_inst(f"ldr r0, =res_linha_{no.n}")
+            self.add_inst("vldr d0, [r0]")
+            self.add_inst("vpush {d0}")
 
         elif isinstance(no, NoIf):
             lbl_fim = self.gerar_label("fim_if")
@@ -386,41 +466,69 @@ class GeradorAssembly:
             self.add_inst("vpop {d0} // Operando B")
             self.add_inst("vpop {d1} // Operando A")
 
-            # operações matematicas
-            if item.simbolo == '+': self.add_inst("vadd.f64 d2, d1, d0")
-            elif item.simbolo == '-': self.add_inst("vsub.f64 d2, d1, d0")
-            elif item.simbolo == '*': self.add_inst("vmul.f64 d2, d1, d0")
-            elif item.simbolo == '|': self.add_inst("vdiv.f64 d2, d1, d0") # Div Real
-            elif item.simbolo == '/': # Div Inteira 
-                # divisão inteira ele arranca as casa decimais e volta para float
+            # Operações matemáticas
+            if item.simbolo == '+':
+                self.add_inst("vadd.f64 d2, d1, d0")
+            elif item.simbolo == '-':
+                self.add_inst("vsub.f64 d2, d1, d0")
+            elif item.simbolo == '*':
+                self.add_inst("vmul.f64 d2, d1, d0")
+            elif item.simbolo == '|':
+                # Divisão real
                 self.add_inst("vdiv.f64 d2, d1, d0")
-                self.add_inst("vcvt.s32.f64 s0, d2")
-                self.add_inst("vcvt.f64.s32 d2, s0")
+            elif item.simbolo == '/':
+                # Divisão inteira: divide, trunca para int32 e volta para f64
+                self.add_inst("vdiv.f64 d2, d1, d0")
+                self.add_inst("vcvt.s32.f64 s4, d2  // Trunca para inteiro")
+                self.add_inst("vcvt.f64.s32 d2, s4  // Volta para double")
+            elif item.simbolo == '%':
+                # Resto da divisão inteira: A % B = A - (int(A/B) * B)
+                self.add_inst("// Resto: A mod B = A - trunc(A/B)*B")
+                self.add_inst("vdiv.f64 d2, d1, d0          // d2 = A / B")
+                self.add_inst("vcvt.s32.f64 s4, d2           // Trunca para int")
+                self.add_inst("vcvt.f64.s32 d2, s4           // Volta para double")
+                self.add_inst("vmul.f64 d2, d2, d0           // d2 = trunc(A/B) * B")
+                self.add_inst("vsub.f64 d2, d1, d2           // d2 = A - resultado")
+            elif item.simbolo == '^':
+                # Potenciação: implementada como loop de multiplicações
+                # Converte o expoente (B) para inteiro no registrador r1
+                lbl_loop  = self.gerar_label("pow_loop")
+                lbl_fim_p = self.gerar_label("pow_fim")
+                self.add_inst("// Potenciação A^B via loop")
+                self.add_inst("vcvt.s32.f64 s4, d0     // B inteiro em s4")
+                self.add_inst("vmov r1, s4              // r1 = B (contador)")
+                self.add_inst("vmov.f64 d2, d1         // d2 = A (acumulador)")
+                self.add_inst("subs r1, r1, #1         // já contamos 1 multiplicação")
+                self.add_inst(f"ble {lbl_fim_p}        // se B<=1, resultado já é A")
+                self.codigo.append(f"    {lbl_loop}:")
+                self.add_inst("vmul.f64 d2, d2, d1    // d2 = d2 * A")
+                self.add_inst("subs r1, r1, #1")
+                self.add_inst(f"bgt {lbl_loop}")
+                self.codigo.append(f"    {lbl_fim_p}:")
 
             # Operações Lógicas
             elif item.simbolo in ['<', '>', '==']:
                 self.add_inst("vcmp.f64 d1, d0")
                 self.add_inst("vmrs APSR_nzcv, fpscr")
                 lbl_true = self.gerar_label("op_true")
-                lbl_end = self.gerar_label("op_end")
+                lbl_end  = self.gerar_label("op_end")
 
-                #Compara e pula de acordo com a condição
-                if item.simbolo == '<': self.add_inst(f"blt {lbl_true}")
+                if item.simbolo == '<':  self.add_inst(f"blt {lbl_true}")
                 elif item.simbolo == '>': self.add_inst(f"bgt {lbl_true}")
                 elif item.simbolo == '==': self.add_inst(f"beq {lbl_true}")
 
-                # Se for falso, empilha 0.0
+                # Falso → empilha 0.0
                 self.add_inst("ldr r0, =const_0")
                 self.add_inst("vldr d2, [r0]")
                 self.add_inst(f"b {lbl_end}")
                 self.codigo.append(f"{lbl_true}:")
-                # Se for verdadeiro, empilha 1.0
+                # Verdadeiro → empilha 1.0
                 self.add_inst("ldr r0, =const_1")
                 self.add_inst("vldr d2, [r0]")
                 self.codigo.append(f"{lbl_end}:")
 
-            self.add_inst("vpush {d2}") # Empilha o resultado final de volta
-            return prof - 1 
+            self.add_inst("vpush {d2} // Empilha resultado")
+            return prof - 1
 
         return prof
 
