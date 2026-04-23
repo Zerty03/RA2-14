@@ -187,9 +187,10 @@ class NoRes(NoAST):
         self.n = n
 
 class Parser:
-    def __init__(self, tokens):
-        self.tokens = tokens
-        self.pos = 0 #aponta para o token atual
+    def __init__(self, tokens, tabela_ll1=None):
+        self.tokens    = tokens
+        self.pos       = 0          # aponta para o token atual
+        self.tabela    = tabela_ll1 # tabela LL(1) para consulta e validação
 
     def token_atual(self):
         # Retorna o token atual ou um marcador de fim de arquivo
@@ -259,13 +260,13 @@ class Parser:
                 else:
                     raise SyntaxError(f"Erro Sintático: Formato inválido para MEM. Use (valor NOME MEM)")
 
-        # (N RES): dois itens — o número N e o comando RES
         if len(itens) == 2 and isinstance(itens[-1], NoComando) and itens[-1].nome == "RES":
             if isinstance(itens[0], NoNumero):
                 return NoRes(int(itens[0].valor))
             else:
                 raise SyntaxError("Erro Sintático: RES requer um número inteiro. Use (N RES)")
-            
+
+        # (NOME): leitura de variável de memória — bloco com apenas uma variável
         if len(itens) == 1 and isinstance(itens[0], NoVariavel):
             no_bloco = NoBloco()
             no_bloco.itens = itens
@@ -304,8 +305,8 @@ class Parser:
             tipo, valor = self.token_atual()
         return itens
     
-def analisador_sintatico(tokens):
-    parser = Parser(tokens)
+def analisador_sintatico(tokens, tabela_ll1=None):
+    parser = Parser(tokens, tabela_ll1)
     return parser.parse_programa()
 
 class GeradorAssembly:
@@ -700,6 +701,82 @@ def salvar_tokens(lista_tokens, nome_arquivo):
         for tipo, valor in lista_tokens:
             f.write(f"<{tipo}, {valor}>\n")
 
+def construirGramatica():
+    gramatica = {
+        'S': [
+            ['(start)', 'C', '(end)']
+        ],
+        'C': [
+            ['B', 'C'],
+            ['ε']
+        ],
+        'B': [
+            ['(', 'O', ')']
+        ],
+        'O': [
+            ['I', 'O'],
+            ['ε']
+        ],
+        'I': [
+            ['num'],
+            ['var'],
+            ['op'],
+            ['cmd'],
+            ['B'] # I → B  (subbloco aninhado)
+        ]
+    }
+ 
+    first = {
+        'S': {'(start)'},
+        'C': {'(',  'ε'}, # pode começar com '(' via B, ou ser vazio
+        'B': {'('},
+        'O': {'num', 'var', 'op', 'cmd', '(', 'ε'},# itens ou vazio
+        'I': {'num', 'var', 'op', 'cmd', '('}  # nunca vazio
+    }
+ 
+    follow = {
+        'S': {'$'},
+        'C': {'(end)'},# C aparece antes de (end) em S
+        'B': {'(', '(end)'},# B pode ser seguido de outro B (via C) ou (end)
+        'O': {')'}, # O aparece antes de ')' em B
+        'I': {'num', 'var', 'op', 'cmd', '(', ')'}  # I é seguido por O ou ')'
+    }
+ 
+    tabela_ll1 = {
+        'S': {
+            '(start)': ['(start)', 'C', '(end)']
+        },
+        'C': {
+            '(':     ['B', 'C'], # FIRST(B) = {(}
+            '(end)': ['ε'] # ε porque (end) ∈ FOLLOW(C)
+        },
+        'B': {
+            '(':     ['(', 'O', ')']
+        },
+        'O': {
+            'num':   ['I', 'O'],
+            'var':   ['I', 'O'],
+            'op':    ['I', 'O'],
+            'cmd':   ['I', 'O'],
+            '(':     ['I', 'O'], # I → B começa com '('
+            ')':     ['ε'] # ε porque ')' ∈ FOLLOW(O)
+        },
+        'I': {
+            'num':   ['num'],
+            'var':   ['var'],
+            'op':    ['op'],
+            'cmd':   ['cmd'],
+            '(':     ['B'] # I → B
+        }
+    }
+ 
+    return {
+        'gramatica':  gramatica,
+        'first':      first,
+        'follow':     follow,
+        'tabela_ll1': tabela_ll1
+    }
+
 def gerarArvore(derivacao, nome_arquivo_entrada):
     nome_json = "arvore_sintatica.json"
     nome_md   = "arvore_sintatica.md"
@@ -735,8 +812,12 @@ def main():
         print(f"Sucesso! Arquivo de tokens gerado: tokens_gerados.txt")
 
         try:
+            print("Construindo a Gramatica LL(1)...")
+            estrutura = construirGramatica()
+            print("Sucesso! Gramatica LL(1) construida.")
+
             print("Iniciando a Analise Sintatica...")
-            arvore_ast = analisador_sintatico(todos_tokens)
+            arvore_ast = analisador_sintatico(todos_tokens, estrutura['tabela_ll1'])
             print("Sucesso! Arvore Sintatica (AST) gerada sem erros.")
 
             arquivos = gerarArvore(arvore_ast, nome_arquivo_entrada)
