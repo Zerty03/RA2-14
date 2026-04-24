@@ -1,0 +1,59 @@
+# Árvore Sintática
+
+**Arquivo de entrada:** `Teste1.txt`
+
+```
+**Programa**
+    ├── Bloco
+    │   ├── Número: `10.0`
+    │   ├── Número: `3.0`
+    │   └── Operador: `+`
+    ├── Bloco
+    │   ├── Número: `10.0`
+    │   ├── Número: `3.0`
+    │   └── Operador: `-`
+    ├── Bloco
+    │   ├── Número: `4.0`
+    │   ├── Número: `2.5`
+    │   └── Operador: `*`
+    ├── Bloco
+    │   ├── Número: `9.0`
+    │   ├── Número: `4.0`
+    │   └── Operador: `|`
+    ├── Bloco
+    │   ├── Número: `10.0`
+    │   ├── Número: `3.0`
+    │   └── Operador: `/`
+    ├── Bloco
+    │   ├── Número: `10.0`
+    │   ├── Número: `3.0`
+    │   └── Operador: `%`
+    ├── Bloco
+    │   ├── Número: `2.0`
+    │   ├── Número: `8.0`
+    │   └── Operador: `^`
+    ├── **RES** ← linha `1`
+    ├── **MEM** → `PI`
+    │   └── Número: `3.14`
+    ├── Bloco
+    │   └── Variável: `PI`
+    ├── **RES** ← linha `2`
+    ├── **MEM** → `LIMITE`
+    │   └── Número: `10.0`
+    ├── **IF**
+    │   ├── Condição:
+    │   │   ├── Operador: `>`
+    │   └── Bloco Verdadeiro:
+    │       └── Bloco
+    │           ├── Variável: `LIMITE`
+    │           ├── Número: `2.0`
+    │           └── Operador: `-`
+    ├── **MEM** → `I`
+    │   └── Número: `1.0`
+    └── **WHILE**
+        ├── Condição:
+        │   ├── Operador: `<`
+        └── Bloco Loop:
+            └── **MEM** → `I`
+                └── Operador: `+`
+```
