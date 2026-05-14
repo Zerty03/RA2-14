@@ -244,18 +244,21 @@ class Parser:
 
             if comando_nome == "IF":
                 bloco_verdadeiro = itens[-2]
-                condicao = itens[-3]
+                condicao = NoBloco()
+                condicao.itens = itens[:-2]
                 return NoIf(condicao, bloco_verdadeiro)
-            
+
             elif comando_nome == "WHILE":
                 bloco_loop = itens[-2]
-                condicao = itens[-3]
+                condicao = NoBloco()
+                condicao.itens = itens[:-2]
                 return NoWhile(condicao, bloco_loop)
-            
+
             elif comando_nome == "MEM":
                 if len(itens) >= 3 and isinstance(itens[-2], NoVariavel):
                     nome_mem = itens[-2].nome
-                    valor_mem = itens[-3]
+                    valor_mem = NoBloco()
+                    valor_mem.itens = itens[:-2]
                     return NoMem(valor_mem, nome_mem)
                 else:
                     raise SyntaxError(f"Erro Sintático: Formato inválido para MEM. Use (valor NOME MEM)")
@@ -374,16 +377,22 @@ class GeradorAssembly:
         # Cada comando no programa corresponde a uma "linha".
         # Após executar cada bloco, salvamos o topo da pilha FPU em res_N
         # para que (N RES) possa recuperá-lo.
-        total = len(no_prog.comandos)
         for idx, cmd in enumerate(no_prog.comandos):
             self.visitar_no(cmd, profundidade_pilha=0)
-            # Salva resultado do topo da pilha (se houver) como resultado desta linha
             label_resultado = f"res_linha_{idx + 1}"
             self.resultado_linhas.append(label_resultado)
             self.add_inst(f"// Salvando resultado da linha {idx + 1}")
-            self.add_inst("vpop {d0}")
             self.add_inst(f"ldr r0, =res_linha_{idx + 1}")
-            self.add_inst("vstr d0, [r0]")
+            if isinstance(cmd, (NoIf, NoWhile)):
+                # IF/WHILE são instruções de controle: não deixam valor na pilha FPU.
+                # Salva 0.0 como marcador para que (N RES) não quebre.
+                self.add_inst("ldr r1, =const_0")
+                self.add_inst("vldr d0, [r1]")
+                self.add_inst("vstr d0, [r0]")
+            else:
+                # Expressões e MEM deixam exatamente 1 valor na pilha.
+                self.add_inst("vpop {d0}")
+                self.add_inst("vstr d0, [r0]")
 
     def visitar_no(self, no, profundidade_pilha=0):
         if isinstance(no, NoBloco):
@@ -407,6 +416,7 @@ class GeradorAssembly:
             self.add_inst("vpop {d0}") # pega da pilha FPU
             self.add_inst(f"ldr r0, =var_{no.nome_mem}")
             self.add_inst("vstr d0, [r0]") # salva na RAM
+            self.add_inst("vpush {d0}") # recoloca na pilha para visitar_programa salvar como resultado da linha
 
         elif isinstance(no, NoRes):
             # (N RES): busca o resultado salvo N linhas atrás no histórico
@@ -430,6 +440,9 @@ class GeradorAssembly:
 
             self.add_inst("\n// BLOCO VERDADEIRO \n")
             self.visitar_no(no.bloco_verdadeiro, profundidade_pilha)
+            # Todo corpo (NoBloco ou NoMem com vpush) deixa 1 valor na pilha.
+            # Descartamos sempre para manter a pilha balanceada — IF é instrução, não expressão.
+            self.add_inst("vpop {d0} // Descarta resultado do bloco IF")
             self.codigo.append(f"{lbl_fim}:")
 
         elif isinstance(no, NoWhile):
@@ -450,6 +463,9 @@ class GeradorAssembly:
 
             self.add_inst("\n// BLOCO WHILE \n")
             self.visitar_no(no.bloco_loop, profundidade_pilha)
+            # Todo corpo (NoBloco ou NoMem com vpush) deixa 1 valor na pilha.
+            # Descartamos sempre para não acumular na pilha a cada iteração.
+            self.add_inst("vpop {d0} // Descarta resultado do corpo do WHILE")
             self.add_inst(f"b {lbl_inicio} // Volta lá para cima!")
             self.codigo.append(f"{lbl_fim}:")
 
