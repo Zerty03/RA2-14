@@ -6,45 +6,19 @@
       "itens": [
         {
           "tipo": "Numero",
-          "valor": 10.0
+          "valor": 3.0
         },
         {
           "tipo": "Numero",
-          "valor": 3.0
+          "valor": 2.0
         },
         {
           "tipo": "Operador",
           "simbolo": "+"
-        }
-      ]
-    },
-    {
-      "tipo": "Bloco",
-      "itens": [
-        {
-          "tipo": "Numero",
-          "valor": 10.0
         },
         {
           "tipo": "Numero",
-          "valor": 3.0
-        },
-        {
-          "tipo": "Operador",
-          "simbolo": "-"
-        }
-      ]
-    },
-    {
-      "tipo": "Bloco",
-      "itens": [
-        {
-          "tipo": "Numero",
-          "valor": 4.0
-        },
-        {
-          "tipo": "Numero",
-          "valor": 2.5
+          "valor": 5.0
         },
         {
           "tipo": "Operador",
@@ -56,12 +30,167 @@
       "tipo": "Bloco",
       "itens": [
         {
-          "tipo": "Numero",
-          "valor": 9.0
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Numero",
+              "valor": 4.0
+            },
+            {
+              "tipo": "Numero",
+              "valor": 2.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "+"
+            }
+          ]
         },
         {
-          "tipo": "Numero",
-          "valor": 4.0
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Numero",
+              "valor": 3.0
+            },
+            {
+              "tipo": "Numero",
+              "valor": 1.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "-"
+            }
+          ]
+        },
+        {
+          "tipo": "Operador",
+          "simbolo": "*"
+        }
+      ]
+    },
+    {
+      "tipo": "Bloco",
+      "itens": [
+        {
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Numero",
+              "valor": 10.0
+            },
+            {
+              "tipo": "Numero",
+              "valor": 2.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "|"
+            }
+          ]
+        },
+        {
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Numero",
+              "valor": 3.0
+            },
+            {
+              "tipo": "Numero",
+              "valor": 1.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "+"
+            }
+          ]
+        },
+        {
+          "tipo": "Operador",
+          "simbolo": "-"
+        }
+      ]
+    },
+    {
+      "tipo": "Bloco",
+      "itens": [
+        {
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Numero",
+              "valor": 7.0
+            },
+            {
+              "tipo": "Numero",
+              "valor": 3.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "%"
+            }
+          ]
+        },
+        {
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Numero",
+              "valor": 2.0
+            },
+            {
+              "tipo": "Numero",
+              "valor": 4.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "^"
+            }
+          ]
+        },
+        {
+          "tipo": "Operador",
+          "simbolo": "+"
+        }
+      ]
+    },
+    {
+      "tipo": "Bloco",
+      "itens": [
+        {
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Numero",
+              "valor": 9.0
+            },
+            {
+              "tipo": "Numero",
+              "valor": 3.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "/"
+            }
+          ]
+        },
+        {
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Numero",
+              "valor": 2.0
+            },
+            {
+              "tipo": "Numero",
+              "valor": 5.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "*"
+            }
+          ]
         },
         {
           "tipo": "Operador",
@@ -70,105 +199,31 @@
       ]
     },
     {
-      "tipo": "Bloco",
-      "itens": [
-        {
-          "tipo": "Numero",
-          "valor": 10.0
-        },
-        {
-          "tipo": "Numero",
-          "valor": 3.0
-        },
-        {
-          "tipo": "Operador",
-          "simbolo": "/"
-        }
-      ]
-    },
-    {
-      "tipo": "Bloco",
-      "itens": [
-        {
-          "tipo": "Numero",
-          "valor": 10.0
-        },
-        {
-          "tipo": "Numero",
-          "valor": 3.0
-        },
-        {
-          "tipo": "Operador",
-          "simbolo": "%"
-        }
-      ]
-    },
-    {
-      "tipo": "Bloco",
-      "itens": [
-        {
-          "tipo": "Numero",
-          "valor": 2.0
-        },
-        {
-          "tipo": "Numero",
-          "valor": 8.0
-        },
-        {
-          "tipo": "Operador",
-          "simbolo": "^"
-        }
-      ]
-    },
-    {
-      "tipo": "Res",
-      "n": 1
-    },
-    {
       "tipo": "Mem",
-      "nome_mem": "PI",
+      "nome_mem": "TOTAL",
       "valor": {
-        "tipo": "Numero",
-        "valor": 3.14
+        "tipo": "Bloco",
+        "itens": [
+          {
+            "tipo": "Numero",
+            "valor": 100.0
+          }
+        ]
       }
     },
     {
-      "tipo": "Bloco",
-      "itens": [
-        {
-          "tipo": "Variavel",
-          "nome": "PI"
-        }
-      ]
-    },
-    {
-      "tipo": "Res",
-      "n": 2
-    },
-    {
       "tipo": "Mem",
-      "nome_mem": "LIMITE",
+      "nome_mem": "TOTAL",
       "valor": {
-        "tipo": "Numero",
-        "valor": 10.0
-      }
-    },
-    {
-      "tipo": "If",
-      "condicao": {
-        "tipo": "Operador",
-        "simbolo": ">"
-      },
-      "bloco_verdadeiro": {
         "tipo": "Bloco",
         "itens": [
           {
             "tipo": "Variavel",
-            "nome": "LIMITE"
+            "nome": "TOTAL"
           },
           {
             "tipo": "Numero",
-            "valor": 2.0
+            "valor": 20.0
           },
           {
             "tipo": "Operador",
@@ -178,27 +233,120 @@
       }
     },
     {
-      "tipo": "Mem",
-      "nome_mem": "I",
-      "valor": {
-        "tipo": "Numero",
-        "valor": 1.0
-      }
+      "tipo": "Res",
+      "n": 1
+    },
+    {
+      "tipo": "Res",
+      "n": 2
     },
     {
       "tipo": "While",
       "condicao": {
-        "tipo": "Operador",
-        "simbolo": "<"
+        "tipo": "Bloco",
+        "itens": [
+          {
+            "tipo": "Variavel",
+            "nome": "TOTAL"
+          },
+          {
+            "tipo": "Numero",
+            "valor": 0.0
+          },
+          {
+            "tipo": "Operador",
+            "simbolo": ">"
+          }
+        ]
       },
       "bloco_loop": {
         "tipo": "Mem",
-        "nome_mem": "I",
+        "nome_mem": "TOTAL",
         "valor": {
-          "tipo": "Operador",
-          "simbolo": "+"
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Variavel",
+              "nome": "TOTAL"
+            },
+            {
+              "tipo": "Numero",
+              "valor": 10.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "-"
+            }
+          ]
         }
       }
+    },
+    {
+      "tipo": "Mem",
+      "nome_mem": "LIMITE",
+      "valor": {
+        "tipo": "Bloco",
+        "itens": [
+          {
+            "tipo": "Numero",
+            "valor": 50.0
+          }
+        ]
+      }
+    },
+    {
+      "tipo": "If",
+      "condicao": {
+        "tipo": "Bloco",
+        "itens": [
+          {
+            "tipo": "Variavel",
+            "nome": "TOTAL"
+          },
+          {
+            "tipo": "Variavel",
+            "nome": "LIMITE"
+          },
+          {
+            "tipo": "Operador",
+            "simbolo": "<"
+          }
+        ]
+      },
+      "bloco_verdadeiro": {
+        "tipo": "Mem",
+        "nome_mem": "TOTAL",
+        "valor": {
+          "tipo": "Bloco",
+          "itens": [
+            {
+              "tipo": "Variavel",
+              "nome": "TOTAL"
+            },
+            {
+              "tipo": "Numero",
+              "valor": 2.0
+            },
+            {
+              "tipo": "Operador",
+              "simbolo": "*"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "tipo": "Bloco",
+      "itens": [
+        {
+          "tipo": "Variavel",
+          "nome": "TOTAL"
+        }
+      ]
+    },
+    {
+      "tipo": "Res",
+      "n": 3
     }
   ]
 }

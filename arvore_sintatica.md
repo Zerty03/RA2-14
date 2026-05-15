@@ -1,59 +1,93 @@
 # Árvore Sintática
 
-**Arquivo de entrada:** `Teste1.txt`
+**Arquivo de entrada:** `Teste2.txt`
 
 ```
 **Programa**
     ├── Bloco
-    │   ├── Número: `10.0`
     │   ├── Número: `3.0`
-    │   └── Operador: `+`
-    ├── Bloco
-    │   ├── Número: `10.0`
-    │   ├── Número: `3.0`
-    │   └── Operador: `-`
-    ├── Bloco
-    │   ├── Número: `4.0`
-    │   ├── Número: `2.5`
+    │   ├── Número: `2.0`
+    │   ├── Operador: `+`
+    │   ├── Número: `5.0`
     │   └── Operador: `*`
     ├── Bloco
-    │   ├── Número: `9.0`
-    │   ├── Número: `4.0`
+    │   ├── Bloco
+    │   │   ├── Número: `4.0`
+    │   │   ├── Número: `2.0`
+    │   │   └── Operador: `+`
+    │   ├── Bloco
+    │   │   ├── Número: `3.0`
+    │   │   ├── Número: `1.0`
+    │   │   └── Operador: `-`
+    │   └── Operador: `*`
+    ├── Bloco
+    │   ├── Bloco
+    │   │   ├── Número: `10.0`
+    │   │   ├── Número: `2.0`
+    │   │   └── Operador: `|`
+    │   ├── Bloco
+    │   │   ├── Número: `3.0`
+    │   │   ├── Número: `1.0`
+    │   │   └── Operador: `+`
+    │   └── Operador: `-`
+    ├── Bloco
+    │   ├── Bloco
+    │   │   ├── Número: `7.0`
+    │   │   ├── Número: `3.0`
+    │   │   └── Operador: `%`
+    │   ├── Bloco
+    │   │   ├── Número: `2.0`
+    │   │   ├── Número: `4.0`
+    │   │   └── Operador: `^`
+    │   └── Operador: `+`
+    ├── Bloco
+    │   ├── Bloco
+    │   │   ├── Número: `9.0`
+    │   │   ├── Número: `3.0`
+    │   │   └── Operador: `/`
+    │   ├── Bloco
+    │   │   ├── Número: `2.0`
+    │   │   ├── Número: `5.0`
+    │   │   └── Operador: `*`
     │   └── Operador: `|`
-    ├── Bloco
-    │   ├── Número: `10.0`
-    │   ├── Número: `3.0`
-    │   └── Operador: `/`
-    ├── Bloco
-    │   ├── Número: `10.0`
-    │   ├── Número: `3.0`
-    │   └── Operador: `%`
-    ├── Bloco
-    │   ├── Número: `2.0`
-    │   ├── Número: `8.0`
-    │   └── Operador: `^`
+    ├── **MEM** → `TOTAL`
+    │   └── Bloco
+    │       └── Número: `100.0`
+    ├── **MEM** → `TOTAL`
+    │   └── Bloco
+    │       ├── Variável: `TOTAL`
+    │       ├── Número: `20.0`
+    │       └── Operador: `-`
     ├── **RES** ← linha `1`
-    ├── **MEM** → `PI`
-    │   └── Número: `3.14`
-    ├── Bloco
-    │   └── Variável: `PI`
     ├── **RES** ← linha `2`
+    ├── **WHILE**
+    │   ├── Condição:
+    │   │   ├── Bloco
+    │   │   │   ├── Variável: `TOTAL`
+    │   │   │   ├── Número: `0.0`
+    │   │   │   └── Operador: `>`
+    │   └── Bloco Loop:
+    │       └── **MEM** → `TOTAL`
+    │           └── Bloco
+    │               ├── Variável: `TOTAL`
+    │               ├── Número: `10.0`
+    │               └── Operador: `-`
     ├── **MEM** → `LIMITE`
-    │   └── Número: `10.0`
+    │   └── Bloco
+    │       └── Número: `50.0`
     ├── **IF**
     │   ├── Condição:
-    │   │   ├── Operador: `>`
+    │   │   ├── Bloco
+    │   │   │   ├── Variável: `TOTAL`
+    │   │   │   ├── Variável: `LIMITE`
+    │   │   │   └── Operador: `<`
     │   └── Bloco Verdadeiro:
-    │       └── Bloco
-    │           ├── Variável: `LIMITE`
-    │           ├── Número: `2.0`
-    │           └── Operador: `-`
-    ├── **MEM** → `I`
-    │   └── Número: `1.0`
-    └── **WHILE**
-        ├── Condição:
-        │   ├── Operador: `<`
-        └── Bloco Loop:
-            └── **MEM** → `I`
-                └── Operador: `+`
+    │       └── **MEM** → `TOTAL`
+    │           └── Bloco
+    │               ├── Variável: `TOTAL`
+    │               ├── Número: `2.0`
+    │               └── Operador: `*`
+    ├── Bloco
+    │   └── Variável: `TOTAL`
+    └── **RES** ← linha `3`
 ```
